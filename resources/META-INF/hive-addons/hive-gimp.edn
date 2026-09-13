@@ -1,0 +1,20 @@
+{:addon/id           "hive.gimp"
+ :addon/kind         :addon
+ :addon/type         :external
+ :addon/version      "0.1.0"
+ :addon/init-ns      "hive-gimp.addon"
+ :addon/init-fn      "addon-ctor"
+ :addon/config       {}
+ :addon/capabilities #{:tools :health-reporting}
+ :addon/dependencies #{}
+ ;; Lazy: GIMP is a desktop application most sessions never open, so the addon
+ ;; is mounted on the first call to one of its tools and released after fifteen
+ ;; idle minutes. No :addon/surface on purpose. The tool definitions carry the
+ ;; live command count in their descriptions, so a declared copy here would
+ ;; drift the first time the catalog grows; the lifecycle learns the surface
+ ;; from the first mount instead, and mounts eagerly until it has.
+ :addon/lifecycle    {:policy :lazy :idle-ms 900000}
+ :addon/description  "GIMP 3 image editing over the plug-in socket: a catalog of GIMP commands behind five tools (gimp, gimp_exec, gimp_catalog, gimp_pixel, gimp_doctor)."
+ :addon/license      "MIT"
+ :addon/maturity     :beta
+ :addon/trust-class  :foss}

@@ -10,7 +10,7 @@
   ;; contract lib rather than on a host namespace is what lets any host, hive-mcp
   ;; or not, mount this jar. Requiring hive-mcp here would be the axiom violation
   ;; that makes the published artifact unloadable from a maven fetch.
-  io.github.hive-agi/hive-addon   {:mvn/version "1.0.5"}
+  io.github.hive-agi/hive-addon   {:mvn/version "1.0.8"}
 
   ;; hive-spi: pure SPI contract leaf (protocols, schema registry, generators).
   io.github.hive-agi/hive-spi     {:mvn/version "1.1.0"}
