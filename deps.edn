@@ -1,0 +1,78 @@
+{:paths ["src" "resources"]
+
+ :deps
+ {org.clojure/clojure   {:mvn/version "1.12.5"}
+  org.clojure/data.json {:mvn/version "2.5.2"}
+  com.taoensso/timbre   {:mvn/version "6.8.0"}
+  metosin/malli         {:mvn/version "0.20.1"}
+
+  ;; hive-addon: the IAddon contract this addon implements. Depending on the
+  ;; contract lib rather than on a host namespace is what lets any host, hive-mcp
+  ;; or not, mount this jar. Requiring hive-mcp here would be the axiom violation
+  ;; that makes the published artifact unloadable from a maven fetch.
+  io.github.hive-agi/hive-addon   {:mvn/version "1.0.5"}
+
+  ;; hive-spi: pure SPI contract leaf (protocols, schema registry, generators).
+  io.github.hive-agi/hive-spi     {:mvn/version "1.1.0"}
+
+  ;; hive-dsl: Result monad, rescue/guard, closed ADTs.
+  io.github.hive-agi/hive-dsl     {:mvn/version "0.5.25"}
+
+  ;; hive-di: typed config DI (env sources, coalesce).
+  io.github.hive-agi/hive-di      {:mvn/version "0.4.12"}
+
+  ;; hive-schemas: malli value objects plus the schema-driven stub/spy doubles
+  ;; the suite injects through the transport port. Top level, not test-only:
+  ;; hive-gimp.schema registers its value objects at load time.
+  io.github.hive-agi/hive-schemas {:mvn/version "0.1.33"}}
+
+ :aliases
+ {;; clojure -T:build <task> -- canonical hive build (jar / install / bump / deploy).
+  :build {:deps {io.github.hive-agi/hive-build {:mvn/version "0.1.16"}}
+          :ns-default hive-build.api}
+
+  ;; The libpython-clj transport is OPTIONAL and lives behind this alias.
+  ;;
+  ;; It is optional because the GIMP contact surface is a TCP socket, not a
+  ;; Python API: hive-gimp.transport.socket reaches GIMP with zero Python on the
+  ;; JVM. The Python that drives GIMP is GIMP's OWN embedded PyGObject
+  ;; interpreter, which no external JVM can import at any price.
+  ;;
+  ;; What this alias buys is the HOST-side Python ecosystem (rembg, PIL, numpy,
+  ;; scikit-image) for pixel work GIMP has no procedure for, plus a second
+  ;; transport for anyone who would rather drive the reference project's own
+  ;; Python client. hive-gimp.transport.python soft-resolves every libpython-clj
+  ;; var, so the addon loads and degrades to :python/unavailable without it.
+  ;;
+  ;;   clojure -M:python ...
+  :python {:extra-deps {clj-python/libpython-clj {:mvn/version "2.026"}}}
+
+  :test {:extra-paths ["test"]
+         :extra-deps {lambdaisland/kaocha    {:mvn/version "1.91.1392"}
+                      org.clojure/test.check {:mvn/version "1.1.3"}
+                      io.github.hive-agi/hive-test {:mvn/version "0.4.5"}}
+         ;; Without :main-opts, `clojure -M:test` starts a REPL and runs no
+         ;; tests, so a release gate invoking it would pass on every input.
+         :main-opts ["-m" "kaocha.runner"]}
+
+  ;; Interactive development: `clojure -M:test:nrepl`.
+  ;;
+  ;; A separate alias rather than a flag on :test, because :test carries
+  ;; :main-opts and an alias's main-opts consume the command line: asking
+  ;; `-M:test -m nrepl.cmdline` for a REPL hands "-m nrepl.cmdline" to the test
+  ;; runner as arguments and starts no REPL. Listing :nrepl last makes its
+  ;; main-opts the ones that win.
+  :nrepl {:extra-deps {nrepl/nrepl       {:mvn/version "1.3.1"}
+                       cider/cider-nrepl {:mvn/version "0.50.2"}}
+          :main-opts  ["-m" "nrepl.cmdline"
+                       "--middleware" "[cider.nrepl/cider-middleware]"]}
+
+  ;; The suite plus the optional Python transport's own tests.
+  :test-python {:extra-paths ["test"]
+                :extra-deps {lambdaisland/kaocha    {:mvn/version "1.91.1392"}
+                             org.clojure/test.check {:mvn/version "1.1.3"}
+                             io.github.hive-agi/hive-test {:mvn/version "0.4.5"}
+                             clj-python/libpython-clj  {:mvn/version "2.026"}}
+                :main-opts ["-m" "kaocha.runner"]}}
+
+ :mvn/repos {"hive-gitea" {:url "https://gitea.hive-mcp.com/api/packages/hive-agi/maven"}}}

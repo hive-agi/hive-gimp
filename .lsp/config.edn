@@ -1,0 +1,1 @@
+{:source-paths #{"dev" "resources" "src" "test"}, :project-specs [{:project-path "deps.edn", :classpath-cmd ["clojure" "-Spath"]}]}

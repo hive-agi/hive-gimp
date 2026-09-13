@@ -1,0 +1,6 @@
+{:project-id  "hive-gimp"
+ :description "IAddon exposing GIMP 3.x as MCP tools over its plugin socket, with an optional libpython-clj host-side Python port."
+ :type        :library
+ :kg-backend  :datahike
+ :parent      "hive"
+ :carto       {:source-roots ["dev" "resources" "src" "test"]}}

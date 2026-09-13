@@ -1,0 +1,22 @@
+;; Commands the GIMP plugin dispatches that the reference Python server never
+;; exposed. Hand-maintained, and the whole point of the split: the derived file
+;; is regenerated wholesale from the reference project, so anything we ADD to
+;; the surface has to live somewhere a regeneration will not erase.
+;;
+;; Both were found by the generator's cross-check, which diffs the commands the
+;; Python tools SEND against the commands the plugin HANDLES. The Python server
+;; spends both names on host-side connection management (its own check_server
+;; opens a probe socket and asks for get_gimp_info instead), so the plugin's
+;; real handlers were never reachable from an MCP client.
+
+[
+ {:command "check_server"
+  :tool    "gimp_check_plugin"
+  :doc     "Ask the GIMP plugin whether its socket server is running, and on which port. Answered by the plugin itself, so a success proves the plugin is live and not merely that a socket accepted a connection."
+  :params  []}
+
+ {:command "restart_server"
+  :tool    "gimp_restart_plugin"
+  :doc     "Make the GIMP plugin drop and re-bind its listening socket in place. Use when the port is held but no longer answering; it does not restart GIMP and does not touch open images."
+  :params  []}
+]
