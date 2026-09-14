@@ -1,0 +1,7 @@
+{:paths ["src"]
+
+ ;; The native half. `cljrs build-native` (or ./build.sh) builds this crate;
+ ;; `cljrs run` dlopens rust/target/debug/libhive_gimp_native.so before any
+ ;; Clojure code runs and calls `cljrs_init`, which interns `gimp.native/*`.
+ :rust {:crate "rust"
+        :init  "hive_gimp_native::cljrs_init"}}

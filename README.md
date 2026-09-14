@@ -284,20 +284,46 @@ the detail that makes it interesting, which is that responses carry no
 terminator. If the transport can talk to that, it can talk to GIMP, because the
 wire is the entire contract between them.
 
+## The native plug-in: GIMP's side in Clojure, on clojurust
+
+`native/` is a GIMP 3 plug-in with no Python in it. GIMP execs a launcher that
+runs `cljrs` (clojurust) on `native/src/hive_gimp/plugin/main.cljrs`; a small
+Rust cdylib registers the GimpPlugIn subclass, enters libgimp's `gimp_main`,
+owns the socket and wraps the libgimp calls; the command table, the JSON codec
+and the colour normalisation are portable Clojure that run the same on the JVM,
+ClojureWasm and clojurust. It speaks the socket contract above, so this side
+reaches it with nothing but a port:
+
+```clojure
+(def g (gimp/connect {:port 9878}))
+(gimp/invoke g "new_canvas" {:width 320 :height 200 :fill "orange"})
+```
+
+It implements ten catalogued commands today (`check_server`, `get_gimp_info`,
+`list_images`, `get_image_metadata`, `new_canvas`, `create_layer`,
+`list_layers`, `fill_layer`, `export_image`, `close_image`); the Python
+reference plug-in still covers the rest, on its own port, and both can be
+installed at once.
+
+```bash
+native/build.sh && native/install.sh
+dev/verify_native_plugin.sh     # live: headless flatpak GIMP 3.2.4 + this JVM client + ffmpeg pixel checks
+```
+
+Measured along the way, all in `native/README.md`: a Clojure callback from the
+cdylib breaks the moment it builds a vector past 32 elements, so no Clojure runs
+inside one; `true?`/`false?`/`identical?` answer wrongly on clojurust once a fn
+is hot; and GEGL paints an unknown colour name transparent cyan and reads
+`rgb()` channels as 0..1, both while reporting success, which the Python
+reference plug-in passes straight through.
+
 ## A note on Basilisp
 
-Basilisp (Clojure on CPython) is a good fit for **the GIMP-side plugin**, which
-today is 184KB of Python whose core is an 80-branch `elif` chain. It runs in
-GIMP's own interpreter, where `gi.repository.Gimp` is plain interop, and the
-dispatch chain would collapse into the same descriptor data this side already
-reads.
-
-It is *not* a fit for the JVM side (the `IAddon` is a JVM protocol) or for the
-host-side Python port (libpython-clj is already in-process; Basilisp would mean
-a second process).
-
-Nothing here blocks it: the seam between the two sides is the socket contract,
-so a Basilisp plugin drops in behind it without one line changing on this side.
+The GIMP-side plug-in now exists in Clojure, on clojurust (above), which is what
+this section used to propose Basilisp for. Basilisp remains the other route: it
+runs in GIMP's own Python, where `gi.repository.Gimp` is plain interop, and it
+needs no Rust. The seam is still the socket contract, so either drops in behind
+it without one line changing on the JVM side.
 
 ## License
 

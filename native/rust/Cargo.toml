@@ -1,0 +1,23 @@
+[package]
+name = "hive-gimp-native"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+# cdylib: the artifact cljrs dlopens and calls `cljrs_init` on.
+# libgimp, libgobject and libgio are NOT linked at build time: they are
+# dlopened when the plug-in runs inside GIMP's flatpak sandbox, so this crate
+# builds on a host that has no GIMP headers or libraries at all.
+[lib]
+name = "hive_gimp_native"
+crate-type = ["cdylib"]
+
+[dependencies]
+cljrs-interop = { path = "/home/leibniz/PP/clojurust/crates/cljrs-interop" }
+cljrs-runtime = { path = "/home/leibniz/PP/clojurust/crates/cljrs-runtime" }
+cljrs-value = { path = "/home/leibniz/PP/clojurust/crates/cljrs-value" }
+cljrs-gc = { path = "/home/leibniz/PP/clojurust/crates/cljrs-gc" }
+libloading = "0.8"
+# Framing only: the socket reader asks serde_json whether the bytes so far are
+# one complete object. Parsing a request into data is the Clojure side's job.
+serde_json = "1.0"

@@ -3,4 +3,4 @@
  :type        :library
  :kg-backend  :datahike
  :parent      "hive"
- :carto       {:source-roots ["dev" "resources" "src" "test"]}}
+ :carto       {:source-roots ["dev" "native/src" "resources" "src" "test"]}}

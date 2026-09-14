@@ -1,0 +1,93 @@
+(ns hive-gimp.plugin.main
+  "The native GIMP 3 plug-in's entry point, on clojurust.
+
+   GIMP runs the plug-in executable (a launcher that execs cljrs on this file)
+   several times: once to QUERY which procedures it registers, and once per
+   RUN. Each time, `gimp.native/start` enters libgimp's gimp_main on a thread
+   of its own. A query ends with gimp_main returning. A run parks gimp_main
+   inside the procedure, and THIS thread then serves hive-gimp's socket
+   protocol, calling libgimp through the port, until a client sends
+   quit_server; `gimp.native/finish` lets the procedure return.
+
+   Why this thread and not a callback: see the module doc of native/rust/src/lib.rs.
+   In short, Clojure invoked from inside the cdylib runs the cdylib's own copy of
+   the runtime over the host's values, and breaks. So Clojure is only ever run
+   by the host interpreter, and only scalars cross the boundary.
+
+   Everything that decides what a command MEANS is portable Clojure
+   (hive-gimp.plugin.dispatch, hive-gimp.plugin.json).
+
+   argv, as the launcher passes it:  <port> <plug-in-path> <GIMP's own args...>"
+  (:require [clojure.string :as str]
+            [hive-gimp.plugin.dispatch :as dispatch]
+            [hive-gimp.plugin.json :as json]))
+
+(def procedure "plug-in-hive-gimp-native")
+
+(defn- ids
+  "A comma-separated id list, as the cdylib hands one over, as longs."
+  [s]
+  (if (str/blank? s) [] (mapv parse-long (str/split s #","))))
+
+(def gimp
+  "The GIMP port the dispatch table runs against: libgimp, through the cdylib."
+  {:version             gimp.native/version
+   :image-ids           (fn [] (ids (gimp.native/image-ids)))
+   :image-width         gimp.native/image-width
+   :image-height        gimp.native/image-height
+   :image-base-type     gimp.native/image-base-type
+   :image-layer-ids     (fn [id] (ids (gimp.native/image-layer-ids id)))
+   :image-file          gimp.native/image-file
+   :image-new           gimp.native/image-new
+   :image-duplicate     gimp.native/image-duplicate
+   :image-flatten       gimp.native/image-flatten
+   :image-delete        gimp.native/image-delete
+   :layer-new           gimp.native/layer-new
+   :layer-insert        gimp.native/layer-insert
+   :layer-name          gimp.native/layer-name
+   :layer-visible?      gimp.native/layer-visible?
+   :layer-opacity       gimp.native/layer-opacity
+   :layer-add-alpha     gimp.native/layer-add-alpha
+   :drawable-width      gimp.native/drawable-width
+   :drawable-height     gimp.native/drawable-height
+   :drawable-has-alpha? gimp.native/drawable-has-alpha?
+   :fill-color          gimp.native/fill-color
+   :fill-transparent    gimp.native/fill-transparent
+   :display-new         gimp.native/display-new
+   :displays-flush      gimp.native/displays-flush
+   :file-save           gimp.native/file-save})
+
+(defn answer
+  "Request TEXT -> [response-text stop?]. quit_server is answered here rather
+   than by the table: it is about the server, not about GIMP."
+  [port ctx text]
+  (let [{:keys [ok error]} (json/parse text)]
+    (cond
+      error [(json/emit {"status" "error" "error" (str "unparseable request: " error)}) false]
+      (not (map? ok)) [(json/emit {"status" "error" "error" "a request must be a JSON object"}) false]
+      (= "quit_server" (get ok "type"))
+      [(json/emit {"status" "success" "results" {"stopping" true}}) true]
+      :else [(json/emit (dispatch/handle port ctx ok)) false])))
+
+(defn serve
+  "Answer requests on 127.0.0.1:PORT-NUMBER against GIMP port PORT until
+   quit_server. Returns the number of requests answered."
+  [port port-number runtime]
+  (let [addr (gimp.native/listen port-number)
+        ctx  {:port port-number :runtime runtime}]
+    (println "hive-gimp-native: serving on" addr)
+    (loop [n 0]
+      (let [[text stop?] (answer port ctx (gimp.native/next-request))]
+        (gimp.native/respond text)
+        (if stop? (inc n) (recur (inc n)))))))
+
+(defn -main [& args]
+  (let [[port & gimp-argv] args
+        port-number (or (parse-long (str port)) 9878)]
+    (gimp.native/start (str/join "\n" gimp-argv) procedure)
+    (let [phase (gimp.native/await-phase 120000)]
+      (if (= "running" phase)
+        (let [n (serve gimp port-number "clojurust")]
+          (println "hive-gimp-native: stopped after" n "request(s);"
+                   "gimp_main" (gimp.native/finish 30000)))
+        (println "hive-gimp-native: gimp_main" phase)))))

@@ -1,0 +1,15 @@
+(ns hive-gimp.plugin.smoke
+  "The plug-in's server with GIMP replaced by the in-memory fake, on the host.
+
+   Everything but libgimp is real: the Rust socket and framing, the serve loop
+   on the host interpreter, the portable JSON codec and the dispatch table.
+   It is how a change to those is checked without launching GIMP, and it is
+   what the JVM client is pointed at before the live gate.
+
+     cljrs run src/hive_gimp/plugin/smoke.cljrs -- 9879"
+  (:require [hive-gimp.plugin.fake :as fake]
+            [hive-gimp.plugin.main :as main]))
+
+(defn -main [& args]
+  (let [port (or (parse-long (str (first args))) 9879)]
+    (println "served" (main/serve (fake/port) port "clojurust (fake GIMP)") "request(s)")))

@@ -1,1 +1,1 @@
-{:source-paths #{"dev" "resources" "src" "test"}, :project-specs [{:project-path "deps.edn", :classpath-cmd ["clojure" "-Spath"]}]}
+{:source-paths #{"dev" "native/src" "resources" "src" "test"}, :project-specs [{:project-path "deps.edn", :classpath-cmd ["clojure" "-Spath"]}]}
