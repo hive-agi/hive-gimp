@@ -21,7 +21,7 @@
     (println (if ok "  OK  " "  FAIL") label (pr-str (if (response/ok? outcome) (response/value outcome) outcome)))
     (when-not ok (swap! failures inc))))
 
-(let [[port png] *command-line-args*
+(let [[port png png2 xcf] *command-line-args*
       g (gimp/connect {:port (parse-long port)})]
   (println "== hive-gimp JVM client -> native plug-in on port" port)
   (check "check_server names the native implementation"
@@ -52,12 +52,50 @@
     (println (if (response/ok? bad) "  FAIL" "  OK  ") "an unknown colour is refused, not painted cyan" (pr-str (:message bad)))
     (when (or (response/ok? bad) (not (re-find #"Not a colour" (str (:message bad)))))
       (swap! failures inc)))
+  ;; Layer edits, then transforms whose effect on the overlay's position is
+  ;; known exactly, so the shell can check the pixels of the second export.
+  (check "duplicate_layer puts the copy above the original"
+         #(= "overlay copy" (get % "name"))
+         (gimp/invoke g "duplicate_layer" {:layer-name "overlay"}))
+  (check "rename_layer by name"
+         #(= "halo" (get % "new_name"))
+         (gimp/invoke g "rename_layer" {:new-name "halo" :old-name "overlay copy"}))
+  (check "set_layer_properties opacity 50, hidden"
+         #(= [50.0 false] [(get % "opacity") (get % "visible")])
+         (gimp/invoke g "set_layer_properties" {:layer-name "halo" :opacity 50 :visible false}))
+  (check "delete_layer removes the copy"
+         #(= ["halo" 2] [(get % "deleted") (get % "num_layers")])
+         (gimp/invoke g "delete_layer" {:layer-name "halo"}))
+  (check "save_xcf"
+         #(= xcf (get % "file_path"))
+         (gimp/invoke g "save_xcf" {:file-path xcf}))
+  (check "rotate_image 90: 320x200 becomes 200x320"
+         #(= {"width" 200 "height" 320} %)
+         (gimp/invoke g "rotate_image" {:angle 90}))
+  (check "flip_image horizontal"
+         #(= "horizontal" (get % "direction"))
+         (gimp/invoke g "flip_image" {:direction "horizontal"}))
+  (check "crop_to_rect to the top-left 100x100"
+         #(= {"width" 100 "height" 100} %)
+         (gimp/invoke g "crop_to_rect" {:x 0 :y 0 :width 100 :height 100}))
+  (check "scale_image to 50x50"
+         #(= {"width" 50 "height" 50} %)
+         (gimp/invoke g "scale_image" {:width 50 :height 50}))
+  (check "export the transformed image"
+         #(= [50 50] [(get % "width") (get % "height")])
+         (gimp/invoke g "export_image" {:file-path png2}))
   (check "close_image"
          some?
          (gimp/invoke g "close_image"))
   (check "no images left"
          #(= 0 (get % "count"))
          (gimp/invoke g "list_images"))
+  (check "open_image reads the exported PNG back in"
+         #(= [320 200] [(get % "width") (get % "height")])
+         (gimp/invoke g "open_image" {:file-path png}))
+  (check "close the reopened image"
+         some?
+         (gimp/invoke g "close_image"))
   (println (if (zero? @failures) "JVM client: all checks passed" (str "JVM client: " @failures " check(s) failed")))
   (shutdown-agents)
   (System/exit (if (zero? @failures) 0 1)))

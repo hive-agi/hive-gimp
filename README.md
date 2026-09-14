@@ -299,11 +299,14 @@ reaches it with nothing but a port:
 (gimp/invoke g "new_canvas" {:width 320 :height 200 :fill "orange"})
 ```
 
-It implements ten catalogued commands today (`check_server`, `get_gimp_info`,
-`list_images`, `get_image_metadata`, `new_canvas`, `create_layer`,
-`list_layers`, `fill_layer`, `export_image`, `close_image`); the Python
-reference plug-in still covers the rest, on its own port, and both can be
-installed at once.
+It implements 21 of the catalogued commands today: server and info
+(`check_server`, `get_gimp_info`), files (`new_canvas`, `open_image`,
+`save_xcf`, `export_image`, `close_image`, `list_images`,
+`get_image_metadata`), whole-image transforms (`scale_image`, `crop_to_rect`,
+`rotate_image` in quarter turns, `flip_image`, `flatten_image`) and layers
+(`create_layer`, `list_layers`, `fill_layer`, `delete_layer`, `rename_layer`,
+`duplicate_layer`, `set_layer_properties`). The Python reference plug-in still
+covers the rest, on its own port, and both can be installed at once.
 
 ```bash
 native/build.sh && native/install.sh

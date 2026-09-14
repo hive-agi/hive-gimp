@@ -29,11 +29,16 @@ The portable half runs identically on the JVM, ClojureWasm (cljw) and cljrs:
 
 ## Commands
 
-`check_server`, `get_gimp_info`, `list_images`, `get_image_metadata`,
-`new_canvas`, `create_layer`, `list_layers`, `fill_layer`, `export_image`,
-`close_image`, plus `quit_server` (stops serving and lets GIMP's procedure
-return). Every other catalogued command answers `Unknown command`, naming the
-ones implemented. Adding one is a row in `dispatch/commands`, plus any libgimp
+| group | commands |
+|---|---|
+| server | `check_server`, `get_gimp_info`, `quit_server` (stops serving, lets GIMP's procedure return) |
+| files | `new_canvas`, `open_image`, `save_xcf` (refuses a path not ending `.xcf`), `export_image` (through a flattened duplicate, so the open image keeps its layers), `close_image`, `list_images`, `get_image_metadata` |
+| image | `scale_image`, `crop_to_rect` (refuses a rectangle outside the image), `rotate_image` (90/180/270 only; other angles are refused, not approximated), `flip_image`, `flatten_image` |
+| layers | `create_layer`, `list_layers`, `fill_layer`, `delete_layer`, `rename_layer`, `duplicate_layer` (copy goes directly above), `set_layer_properties` (opacity, visible; blend modes other than NORMAL are refused) |
+
+A layer named or indexed that does not exist is an error, never a silent fall
+back to the top layer. Every other catalogued command answers
+`Unknown command`, naming the ones implemented. Adding one is a row in `dispatch/commands`, plus any libgimp
 wrapper it needs in `lib.rs` and the `gimp` port map in `main.cljrs`
 (`plugin-test/the-fake-real-and-declared-ports-agree` keeps the three in step).
 

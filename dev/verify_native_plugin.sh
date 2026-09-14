@@ -20,6 +20,8 @@ CLJRS="${CLJRS:-/home/leibniz/PP/clojurust/target/debug/cljrs}"
 PORT="${HIVE_GIMP_NATIVE_PORT:-9878}"
 out="$(mktemp -d)"
 png="$out/native.png"
+png2="$out/transformed.png"
+xcf="$out/native.xcf"
 fail=0
 
 avail=$(free -g | awk '/^Mem:/ {print $7}')
@@ -54,18 +56,28 @@ if (( ! up )); then
 fi
 
 echo "== 3. hive-gimp's JVM client against the native plug-in"
-clojure -J-Xmx512m -M dev/verify_native_plugin.clj "$PORT" "$png" || fail=1
+clojure -J-Xmx512m -M dev/verify_native_plugin.clj "$PORT" "$png" "$png2" "$xcf" || fail=1
 
-echo "== 4. the exported PNG, read by ffmpeg"
-size=$(ffprobe -v error -show_entries stream=width,height -of csv=p=0 "$png" 2>/dev/null)
-[[ "$size" == "320,200" ]] && echo "  OK   size $size" || { echo "  FAIL size: expected 320,200 got $size"; fail=1; }
-pixel() { ffmpeg -v error -i "$png" -vf "crop=1:1:$1:$2" -f rawvideo -pix_fmt rgb24 - | od -An -tu1 | xargs; }
-check_pixel() { # label x y expected
-  local got; got=$(pixel "$2" "$3")
-  [[ "$got" == "$4" ]] && echo "  OK   $1 ($2,$3) = $got" || { echo "  FAIL $1 ($2,$3): expected $4 got $got"; fail=1; }
+echo "== 4. the exported PNGs, read by ffmpeg"
+check_size() { # file expected
+  local size; size=$(ffprobe -v error -show_entries stream=width,height -of csv=p=0 "$1" 2>/dev/null)
+  [[ "$size" == "$2" ]] && echo "  OK   $(basename "$1") size $size" || { echo "  FAIL $(basename "$1") size: expected $2 got $size"; fail=1; }
 }
-check_pixel "overlay, rgb(0, 128, 0)" 10 10 "0 128 0"
-check_pixel "background, orange"      300 190 "255 165 0"
+pixel() { ffmpeg -v error -i "$1" -vf "crop=1:1:$2:$3" -f rawvideo -pix_fmt rgb24 - | od -An -tu1 | xargs; }
+check_pixel() { # label file x y expected
+  local got; got=$(pixel "$2" "$3" "$4")
+  [[ "$got" == "$5" ]] && echo "  OK   $1 ($3,$4) = $got" || { echo "  FAIL $1 ($3,$4): expected $5 got $got"; fail=1; }
+}
+check_size "$png" "320,200"
+check_pixel "overlay, rgb(0, 128, 0)" "$png" 10 10 "0 128 0"
+check_pixel "background, orange"      "$png" 300 190 "255 165 0"
+# The overlay covered x 0-99, y 0-79 of 320x200. Rotated 90 degrees clockwise
+# (200x320) it covers x 120-199, y 0-99; flipped horizontally, x 0-79, y 0-99;
+# cropped to the top-left 100x100 it is x 0-79 of 100; scaled to 50x50, x 0-39.
+check_size "$png2" "50,50"
+check_pixel "after rotate/flip/crop/scale: overlay" "$png2" 10 25 "0 128 0"
+check_pixel "after rotate/flip/crop/scale: orange"  "$png2" 47 25 "255 165 0"
+[[ -s "$xcf" ]] && echo "  OK   save_xcf wrote $(stat -c %s "$xcf") bytes" || { echo "  FAIL save_xcf wrote nothing"; fail=1; }
 
 echo "== 5. quit_server and stop GIMP"
 printf '{"type":"quit_server"}' | ncat -w 10 127.0.0.1 "$PORT"; echo

@@ -122,6 +122,44 @@
     (is (re-find #"^list_images failed: " (get (run (dissoc p :image-ids) "list_images" {}) "error"))
         "an unexpected failure names the command")))
 
+(deftest transforms-and-layer-edits
+  (let [p (fake/port)
+        ok (fn [t params] (let [r (run p t params)]
+                            (is (= "success" (get r "status")) (pr-str t params r))
+                            (get r "results")))]
+    (ok "new_canvas" {"width" 200 "height" 100})
+    (ok "create_layer" {"name" "top"})
+    (testing "rotation: quarter turns swap the sides, other angles are refused, not approximated"
+      (is (= {"width" 100 "height" 200} (ok "rotate_image" {"angle" 90})))
+      (is (= {"width" 100 "height" 200} (ok "rotate_image" {"angle" 180})))
+      (is (= {"width" 200 "height" 100} (ok "rotate_image" {"angle" -90})))
+      (is (= {"width" 200 "height" 100} (ok "rotate_image" {"angle" 360})))
+      (is (re-find #"multiples of 90" (get (run p "rotate_image" {"angle" 45}) "error")))
+      (is (re-find #"multiples of 90" (get (run p "rotate_image" {"angle" 90.5}) "error"))))
+    (is (= {"width" 50 "height" 25} (ok "scale_image" {"width" 50 "height" 25})))
+    (is (re-find #"not inside" (get (run p "crop_to_rect" {"x" 40 "y" 0 "width" 20 "height" 10}) "error")))
+    (is (= {"width" 10 "height" 5} (ok "crop_to_rect" {"x" 10 "y" 0 "width" 10 "height" 5})))
+    (is (re-find #"horizontal or vertical" (get (run p "flip_image" {"direction" "diagonal"}) "error")))
+    (is (= {"direction" "vertical"} (ok "flip_image" {"direction" "Vertical"})))
+    (testing "layer edits address layers by name or index, and never fall back silently"
+      (is (= {"layer_id" 4 "name" "top copy"} (ok "duplicate_layer" {"layer_name" "top"})))
+      (is (= ["top copy" "top" "Untitled"]
+             (mapv #(get % "name") (get (ok "list_layers" {}) "layers"))))
+      (is (= {"old_name" "top copy" "new_name" "halo"} (ok "rename_layer" {"new_name" "halo" "layer_index" 0})))
+      (is (re-find #"No layer named" (get (run p "delete_layer" {"layer_name" "ghost"}) "error")))
+      (is (re-find #"out of range" (get (run p "delete_layer" {"layer_index" 9}) "error")))
+      (is (= {"deleted" "halo" "num_layers" 2} (ok "delete_layer" {"layer_name" "halo"})))
+      (let [props (ok "set_layer_properties" {"layer_name" "top" "opacity" 40 "visible" false})]
+        (is (= [40.0 false] [(get props "opacity") (get props "visible")])))
+      (is (re-find #"only NORMAL" (get (run p "set_layer_properties" {"blend_mode" "MULTIPLY"}) "error")))
+      (is (re-find #"0-100" (get (run p "set_layer_properties" {"opacity" 140}) "error"))))
+    (is (re-find #"must end in .xcf" (get (run p "save_xcf" {"file_path" "/tmp/a.png"}) "error")))
+    (is (= {"file_path" "/tmp/a.xcf" "image_id" 1} (ok "save_xcf" {"file_path" "/tmp/a.xcf"})))
+    (is (= {"num_layers" 1} (ok "flatten_image" {})))
+    (let [opened (ok "open_image" {"file_path" "/tmp/in.png"})]
+      (is (= "/tmp/in.png" (get opened "file_path")))
+      (is (= 2 (get (ok "list_images" {}) "count"))))))
+
 ;; ---------------------------------------------------------------------------
 ;; The fake is the real port's shape
 

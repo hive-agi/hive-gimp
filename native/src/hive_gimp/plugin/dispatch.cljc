@@ -21,9 +21,11 @@
   "The functions a GIMP port must provide. Ids are GIMP's integer object ids."
   #{:version :image-ids :image-width :image-height :image-base-type :image-layer-ids
     :image-file :image-new :image-duplicate :image-flatten :image-delete
+    :image-scale :image-crop :image-rotate :image-flip :image-remove-layer
     :layer-new :layer-insert :layer-name :layer-visible? :layer-opacity :layer-add-alpha
+    :layer-copy :layer-set-opacity :item-set-name :item-set-visible
     :drawable-width :drawable-height :drawable-has-alpha? :fill-color :fill-transparent
-    :display-new :displays-flush :file-save})
+    :display-new :displays-flush :file-save :file-load})
 
 (defn- call
   [port k & args]
@@ -198,6 +200,164 @@
       {"closed" image}
       (fail (str "GIMP refused to close image " image)))))
 
+;; ---------------------------------------------------------------------------
+;; Files and whole-image transforms
+
+(defn- open-image
+  [port params _]
+  (let [path  (or (get params "file_path") (fail "open_image requires file_path"))
+        image (call port :file-load path)]
+    (call port :display-new image)
+    (call port :displays-flush)
+    {"image_id" image "file_path" path
+     "width" (call port :image-width image) "height" (call port :image-height image)
+     "num_layers" (count (call port :image-layer-ids image))}))
+
+(defn- save-xcf
+  [port params _]
+  (let [path  (or (get params "file_path") (fail "save_xcf requires file_path"))
+        _     (when-not (str/ends-with? (str/lower-case path) ".xcf")
+                (fail (str "save_xcf writes XCF; file_path must end in .xcf, got " (pr-str path))))
+        image (image-id-at port (->long (get params "image_index") 0))]
+    (when-not (call port :file-save image path)
+      (fail (str "GIMP could not save " path)))
+    {"file_path" path "image_id" image}))
+
+(defn- dimensions [port image]
+  {"width" (call port :image-width image) "height" (call port :image-height image)})
+
+(defn- scale-image
+  [port params _]
+  (let [image  (image-id-at port (->long (get params "image_index") 0))
+        width  (->long (get params "width") nil)
+        height (->long (get params "height") nil)]
+    (when-not (and width height (pos? width) (pos? height))
+      (fail "scale_image requires positive width and height"))
+    (when-not (call port :image-scale image width height)
+      (fail (str "GIMP could not scale to " width "x" height)))
+    (call port :displays-flush)
+    (dimensions port image)))
+
+(defn- crop-to-rect
+  [port params _]
+  (let [image  (image-id-at port (->long (get params "image_index") 0))
+        [x y w h] (map #(->long (get params %) nil) ["x" "y" "width" "height"])
+        iw     (call port :image-width image)
+        ih     (call port :image-height image)]
+    (when-not (and x y w h (<= 0 x) (<= 0 y) (pos? w) (pos? h) (<= (+ x w) iw) (<= (+ y h) ih))
+      (fail (str "crop rectangle " [x y w h] " is not inside the " iw "x" ih " image")))
+    (when-not (call port :image-crop image w h x y)
+      (fail "GIMP refused the crop"))
+    (call port :displays-flush)
+    (dimensions port image)))
+
+(defn- rotate-image
+  "Quarter turns only: GIMP's image rotation takes 90, 180 or 270 degrees, and
+   an arbitrary angle is a per-layer transform with interpolation and a new
+   canvas size, which this plug-in does not pretend to do."
+  [port params _]
+  (let [image (image-id-at port (->long (get params "image_index") 0))
+        angle (->double (get params "angle") nil)
+        turn  (when angle (mod (long angle) 360))
+        kind  (get {90 0 180 1 270 2} turn)]
+    (cond
+      (nil? angle) (fail "rotate_image requires angle")
+      (not (== angle (long angle))) (fail (str "rotate_image supports multiples of 90 degrees, got " angle))
+      (= 0 turn) (dimensions port image)
+      (nil? kind) (fail (str "rotate_image supports multiples of 90 degrees, got " angle))
+      :else (do (when-not (call port :image-rotate image kind) (fail "GIMP refused the rotation"))
+                (call port :displays-flush)
+                (dimensions port image)))))
+
+(defn- flip-image
+  [port params _]
+  (let [image     (image-id-at port (->long (get params "image_index") 0))
+        direction (str/lower-case (str (param params "direction" "horizontal")))
+        kind      (get {"horizontal" 0 "vertical" 1} direction)]
+    (when-not kind (fail (str "direction must be horizontal or vertical, got " (pr-str direction))))
+    (when-not (call port :image-flip image kind) (fail "GIMP refused the flip"))
+    (call port :displays-flush)
+    {"direction" direction}))
+
+(defn- flatten-image
+  [port params _]
+  (let [image (image-id-at port (->long (get params "image_index") 0))]
+    (when-not (call port :image-flatten image) (fail "GIMP could not flatten the image"))
+    (call port :displays-flush)
+    {"num_layers" (count (call port :image-layer-ids image))}))
+
+;; ---------------------------------------------------------------------------
+;; Layers
+
+(defn- layer-at
+  "The layer PARAMS name: by NAME-KEY, else by INDEX-KEY (0 = top), else the
+   top layer. A name or index that matches nothing is a user error, never a
+   silent fall back to the top layer."
+  [port image params name-key index-key]
+  (let [layers (vec (call port :image-layer-ids image))
+        wanted (get params name-key)
+        index  (->long (get params index-key) nil)]
+    (cond
+      (empty? layers) (fail "The image has no layers")
+      wanted (or (some #(when (= wanted (call port :layer-name %)) %) layers)
+                 (fail (str "No layer named " (pr-str wanted))))
+      index (if (< -1 index (count layers))
+              (nth layers index)
+              (fail (str "layer_index " index " is out of range; " (count layers) " layer(s)")))
+      :else (first layers))))
+
+(defn- delete-layer
+  [port params _]
+  (let [image (image-id-at port (->long (get params "image_index") 0))
+        layer (layer-at port image params "layer_name" "layer_index")
+        name  (call port :layer-name layer)]
+    (when-not (call port :image-remove-layer image layer) (fail (str "GIMP could not remove " (pr-str name))))
+    (call port :displays-flush)
+    {"deleted" name "num_layers" (count (call port :image-layer-ids image))}))
+
+(defn- rename-layer
+  [port params _]
+  (let [image    (image-id-at port (->long (get params "image_index") 0))
+        new-name (or (get params "new_name") (fail "rename_layer requires new_name"))
+        layer    (layer-at port image params "old_name" "layer_index")
+        old-name (call port :layer-name layer)]
+    (when-not (call port :item-set-name layer (str new-name)) (fail "GIMP refused the rename"))
+    {"old_name" old-name "new_name" (call port :layer-name layer)}))
+
+(defn- duplicate-layer
+  "The copy goes directly above the original. Position is found by a scan, not
+   `.indexOf`, which is JVM interop and does not exist on clojurust or cljw."
+  [port params _]
+  (let [image  (image-id-at port (->long (get params "image_index") 0))
+        layer  (layer-at port image params "layer_name" "layer_index")
+        copy   (call port :layer-copy layer)
+        above  (or (first (keep-indexed (fn [i id] (when (= id layer) i))
+                                        (call port :image-layer-ids image)))
+                   0)]
+    (call port :layer-insert image copy above)
+    (call port :displays-flush)
+    {"layer_id" copy "name" (call port :layer-name copy)}))
+
+(defn- set-layer-properties
+  "opacity (0-100) and visible. blend_mode is refused unless NORMAL: GIMP's
+   layer mode enum has ~60 members and a wrong mapping would be a silent
+   wrong picture."
+  [port params _]
+  (let [image   (image-id-at port (->long (get params "image_index") 0))
+        layer   (layer-at port image params "layer_name" "layer_index")
+        opacity (->double (get params "opacity") nil)
+        visible (get params "visible")
+        mode    (get params "blend_mode")]
+    (when (and mode (not= "NORMAL" (str/upper-case (str mode))))
+      (fail (str "blend_mode " (pr-str mode) " is not supported by the native plug-in; only NORMAL")))
+    (when opacity
+      (when-not (<= 0 opacity 100) (fail (str "opacity must be 0-100, got " opacity)))
+      (call port :layer-set-opacity layer opacity))
+    (when (some? visible)
+      (call port :item-set-visible layer (= true visible)))
+    (call port :displays-flush)
+    (layer-summary port 0 layer)))
+
 (defn- check-server
   [_ _ ctx]
   {"running" true "port" (:port ctx) "implementation" "hive-gimp-native"})
@@ -210,16 +370,27 @@
 (def commands
   "Wire command name -> (fn [port params ctx] results). Adding a command is a
    row here and a descriptor in commands.edn, nothing else."
-  {"check_server"       check-server
-   "get_gimp_info"      gimp-info
-   "list_images"        list-images
-   "get_image_metadata" image-metadata
-   "new_canvas"         new-canvas
-   "create_layer"       create-layer
-   "list_layers"        list-layers
-   "fill_layer"         fill-layer
-   "export_image"       export-image
-   "close_image"        close-image})
+  {"check_server"         check-server
+   "get_gimp_info"        gimp-info
+   "list_images"          list-images
+   "get_image_metadata"   image-metadata
+   "new_canvas"           new-canvas
+   "open_image"           open-image
+   "save_xcf"             save-xcf
+   "export_image"         export-image
+   "close_image"          close-image
+   "scale_image"          scale-image
+   "crop_to_rect"         crop-to-rect
+   "rotate_image"         rotate-image
+   "flip_image"           flip-image
+   "flatten_image"        flatten-image
+   "create_layer"         create-layer
+   "list_layers"          list-layers
+   "fill_layer"           fill-layer
+   "delete_layer"         delete-layer
+   "rename_layer"         rename-layer
+   "duplicate_layer"      duplicate-layer
+   "set_layer_properties" set-layer-properties})
 
 (defn handle
   "REQUEST (parsed wire map) -> response map. Never throws.

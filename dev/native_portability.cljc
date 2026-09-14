@@ -72,7 +72,23 @@
     (check "export keeps the open image" 1 (count (:images @(:state p))))
     (check "unknown command" "error" (get (run "nope" {}) "status"))
     (check "out of range index" "image_index 3 is out of range; 1 image(s) open"
-           (get (run "list_layers" {"image_index" 3}) "error"))))
+           (get (run "list_layers" {"image_index" 3}) "error"))
+    ;; transforms and layer edits
+    (check "rotate 90 swaps sides" {"width" 48 "height" 64} (get (run "rotate_image" {"angle" 90}) "results"))
+    (check "rotate -90 back" {"width" 64 "height" 48} (get (run "rotate_image" {"angle" -90}) "results"))
+    (check "rotate 45 refused" "error" (get (run "rotate_image" {"angle" 45}) "status"))
+    (check "crop outside refused" "error" (get (run "crop_to_rect" {"x" 60 "y" 0 "width" 10 "height" 10}) "status"))
+    (check "duplicate goes above" {"layer_id" 5 "name" "top copy"}
+           (get (run "duplicate_layer" {"layer_name" "top"}) "results"))
+    (check "duplicate position" ["top copy" "top" "Untitled"]
+           (mapv #(get % "name") (get-in (run "list_layers" {}) ["results" "layers"])))
+    (check "rename by index" {"old_name" "top copy" "new_name" "halo"}
+           (get (run "rename_layer" {"new_name" "halo" "layer_index" 0}) "results"))
+    (check "delete unknown refused" "No layer named \"ghost\"" (get (run "delete_layer" {"layer_name" "ghost"}) "error"))
+    (check "set visible false" false
+           (get-in (run "set_layer_properties" {"layer_name" "halo" "visible" false}) ["results" "visible"]))
+    (check "xcf suffix enforced" "error" (get (run "save_xcf" {"file_path" "/tmp/a.png"}) "status"))))
+
 
 (dotimes [_ 60] (run-checks))
 

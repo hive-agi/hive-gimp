@@ -42,12 +42,22 @@
    :image-duplicate     gimp.native/image-duplicate
    :image-flatten       gimp.native/image-flatten
    :image-delete        gimp.native/image-delete
+   :image-scale         gimp.native/image-scale
+   :image-crop          gimp.native/image-crop
+   :image-rotate        gimp.native/image-rotate
+   :image-flip          gimp.native/image-flip
+   :image-remove-layer  gimp.native/image-remove-layer
+   :file-load           gimp.native/file-load
    :layer-new           gimp.native/layer-new
+   :layer-copy          gimp.native/layer-copy
    :layer-insert        gimp.native/layer-insert
    :layer-name          gimp.native/layer-name
    :layer-visible?      gimp.native/layer-visible?
    :layer-opacity       gimp.native/layer-opacity
    :layer-add-alpha     gimp.native/layer-add-alpha
+   :layer-set-opacity   gimp.native/layer-set-opacity
+   :item-set-name       gimp.native/item-set-name
+   :item-set-visible    gimp.native/item-set-visible
    :drawable-width      gimp.native/drawable-width
    :drawable-height     gimp.native/drawable-height
    :drawable-has-alpha? gimp.native/drawable-has-alpha?

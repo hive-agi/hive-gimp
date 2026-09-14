@@ -135,6 +135,16 @@ struct Gimp {
     gimp_display_new: unsafe extern "C" fn(Ptr) -> Ptr,
     gimp_displays_flush: unsafe extern "C" fn() -> GBool,
     gimp_file_save: unsafe extern "C" fn(c_int, Ptr, Ptr, Ptr) -> GBool,
+    gimp_file_load: unsafe extern "C" fn(c_int, Ptr) -> Ptr,
+    gimp_image_scale: unsafe extern "C" fn(Ptr, c_int, c_int) -> GBool,
+    gimp_image_crop: unsafe extern "C" fn(Ptr, c_int, c_int, c_int, c_int) -> GBool,
+    gimp_image_rotate: unsafe extern "C" fn(Ptr, c_int) -> GBool,
+    gimp_image_flip: unsafe extern "C" fn(Ptr, c_int) -> GBool,
+    gimp_image_remove_layer: unsafe extern "C" fn(Ptr, Ptr) -> GBool,
+    gimp_item_set_name: unsafe extern "C" fn(Ptr, *const c_char) -> GBool,
+    gimp_item_set_visible: unsafe extern "C" fn(Ptr, GBool) -> GBool,
+    gimp_layer_copy: unsafe extern "C" fn(Ptr) -> Ptr,
+    gimp_layer_set_opacity: unsafe extern "C" fn(Ptr, f64) -> GBool,
 }
 
 unsafe impl Send for Gimp {}
@@ -219,6 +229,16 @@ fn open() -> Result<Gimp, String> {
         gimp_display_new: sym!(libs, "gimp_display_new"),
         gimp_displays_flush: sym!(libs, "gimp_displays_flush"),
         gimp_file_save: sym!(libs, "gimp_file_save"),
+        gimp_file_load: sym!(libs, "gimp_file_load"),
+        gimp_image_scale: sym!(libs, "gimp_image_scale"),
+        gimp_image_crop: sym!(libs, "gimp_image_crop"),
+        gimp_image_rotate: sym!(libs, "gimp_image_rotate"),
+        gimp_image_flip: sym!(libs, "gimp_image_flip"),
+        gimp_image_remove_layer: sym!(libs, "gimp_image_remove_layer"),
+        gimp_item_set_name: sym!(libs, "gimp_item_set_name"),
+        gimp_item_set_visible: sym!(libs, "gimp_item_set_visible"),
+        gimp_layer_copy: sym!(libs, "gimp_layer_copy"),
+        gimp_layer_set_opacity: sym!(libs, "gimp_layer_set_opacity"),
         _libs: libs,
     })
 }
@@ -689,6 +709,74 @@ pub unsafe extern "C" fn cljrs_init(registry: *mut Registry) {
             (g.g_object_unref)(file);
             Ok::<bool, String>(ok != 0)
         }
+    }));
+    reg.define_in(ns, "file-load", wrap_fn1("file-load", |path: String| {
+        let g = gimp()?;
+        let p = cstring(&path)?;
+        unsafe {
+            let file = (g.g_file_new_for_path)(p.as_ptr());
+            let img = (g.gimp_file_load)(GIMP_RUN_NONINTERACTIVE, file);
+            (g.g_object_unref)(file);
+            if img.is_null() {
+                return Err(format!("GIMP could not open {path:?}"));
+            }
+            Ok::<i64, String>((g.gimp_image_get_id)(img) as i64)
+        }
+    }));
+    reg.define_in(ns, "image-scale", wrap_fn3("image-scale", |id: i64, w: i64, h: i64| {
+        let g = gimp()?;
+        Ok::<bool, String>(unsafe { (g.gimp_image_scale)(image(g, id)?, w as c_int, h as c_int) } != 0)
+    }));
+    // (image-crop id width height offx offy)
+    reg.define_in(ns, "image-crop", wrap_fn_variadic("image-crop", 5, |args: &[Value]| {
+        let g = gimp()?;
+        let img = image(g, long_arg(args, 0)?)?;
+        let ok = unsafe {
+            (g.gimp_image_crop)(
+                img,
+                long_arg(args, 1)? as c_int,
+                long_arg(args, 2)? as c_int,
+                long_arg(args, 3)? as c_int,
+                long_arg(args, 4)? as c_int,
+            )
+        };
+        Ok::<bool, String>(ok != 0)
+    }));
+    // (image-rotate id kind): GimpRotationType, 0 = 90, 1 = 180, 2 = 270 degrees.
+    reg.define_in(ns, "image-rotate", wrap_fn2("image-rotate", |id: i64, kind: i64| {
+        let g = gimp()?;
+        Ok::<bool, String>(unsafe { (g.gimp_image_rotate)(image(g, id)?, kind as c_int) } != 0)
+    }));
+    // (image-flip id orientation): GimpOrientationType, 0 horizontal, 1 vertical.
+    reg.define_in(ns, "image-flip", wrap_fn2("image-flip", |id: i64, orientation: i64| {
+        let g = gimp()?;
+        Ok::<bool, String>(unsafe { (g.gimp_image_flip)(image(g, id)?, orientation as c_int) } != 0)
+    }));
+    reg.define_in(ns, "image-remove-layer", wrap_fn2("image-remove-layer", |img: i64, layer: i64| {
+        let g = gimp()?;
+        Ok::<bool, String>(unsafe { (g.gimp_image_remove_layer)(image(g, img)?, item(g, layer)?) } != 0)
+    }));
+    reg.define_in(ns, "item-set-name", wrap_fn2("item-set-name", |id: i64, name: String| {
+        let g = gimp()?;
+        let n = cstring(&name)?;
+        Ok::<bool, String>(unsafe { (g.gimp_item_set_name)(item(g, id)?, n.as_ptr()) } != 0)
+    }));
+    reg.define_in(ns, "item-set-visible", wrap_fn2("item-set-visible", |id: i64, visible: bool| {
+        let g = gimp()?;
+        Ok::<bool, String>(unsafe { (g.gimp_item_set_visible)(item(g, id)?, visible as GBool) } != 0)
+    }));
+    // (layer-copy id) -> the copy's id, not inserted.
+    reg.define_in(ns, "layer-copy", wrap_fn1("layer-copy", |id: i64| {
+        let g = gimp()?;
+        let copy = unsafe { (g.gimp_layer_copy)(item(g, id)?) };
+        if copy.is_null() {
+            return Err("gimp_layer_copy returned NULL".to_string());
+        }
+        Ok::<i64, String>(unsafe { (g.gimp_item_get_id)(copy) } as i64)
+    }));
+    reg.define_in(ns, "layer-set-opacity", wrap_fn2("layer-set-opacity", |id: i64, opacity: f64| {
+        let g = gimp()?;
+        Ok::<bool, String>(unsafe { (g.gimp_layer_set_opacity)(item(g, id)?, opacity) } != 0)
     }));
 
     reg.env().mark_loaded(ns);
