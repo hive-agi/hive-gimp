@@ -22,10 +22,13 @@
   #{:version :image-ids :image-width :image-height :image-base-type :image-layer-ids
     :image-file :image-new :image-duplicate :image-flatten :image-delete
     :image-scale :image-crop :image-rotate :image-flip :image-remove-layer
+    :image-set-resolution :image-resolution
     :layer-new :layer-insert :layer-name :layer-visible? :layer-opacity :layer-add-alpha
-    :layer-copy :layer-set-opacity :item-set-name :item-set-visible
-    :drawable-width :drawable-height :drawable-has-alpha? :fill-color :fill-transparent
-    :display-new :displays-flush :file-save :file-load})
+    :layer-copy :layer-set-opacity :layer-set-offsets :layer-scale :item-set-name :item-set-visible
+    :drawable-width :drawable-height :drawable-has-alpha? :drawable-offsets
+    :fill-color :fill-transparent :gradient-fill
+    :font-name :text-layer-new :text-layer-style
+    :display-new :displays-flush :file-save :file-load :file-load-layer})
 
 (defn- call
   [port k & args]
@@ -92,37 +95,52 @@
   (let [images (vec (map-indexed #(image-summary port %1 %2) (call port :image-ids)))]
     {"images" images "count" (count images)}))
 
+(defn- colour!
+  "COLOUR as #rrggbb, or a user error naming what is accepted."
+  [colour]
+  (or (color/normalize colour)
+      (fail (str "Not a colour: " (pr-str colour)
+                 ". Use a CSS colour name, #rgb, #rrggbb, or rgb(r, g, b) with 0-255 channels."))))
+
+(defn- transparent? [v] (= "transparent" (str/lower-case (str/trim (str v)))))
+
 (defn- fill!
   "Fill drawable ID with FILL: \"transparent\", or a colour `color/normalize`
    accepts. The colour reaches GIMP as #rrggbb, because GEGL itself paints an
    unknown name transparent cyan and reads rgb() channels as 0..1, both while
    reporting success."
   [port id fill]
-  (if (= "transparent" (str/lower-case (str/trim (str fill))))
+  (if (transparent? fill)
     (do (when-not (call port :drawable-has-alpha? id) (call port :layer-add-alpha id))
         (call port :fill-transparent id))
-    (let [hex (or (color/normalize fill)
-                  (fail (str "Not a colour: " (pr-str fill)
-                             ". Use a CSS colour name, #rgb, #rrggbb, or rgb(r, g, b) with 0-255 channels.")))]
+    (let [hex (colour! fill)]
       (when-not (call port :fill-color id hex)
         (fail (str "GIMP could not fill with " (pr-str fill)))))))
 
 (defn- new-canvas
+  "RESOLUTION (dpi, both axes) is stored on the image, so an exported PNG
+   carries it as pHYs."
   [port params _]
-  (let [width  (->long (param params "width" 1024) 1024)
-        height (->long (param params "height" 1024) 1024)
-        name   (str (param params "name" "Untitled"))
-        mode   (str/upper-case (str (param params "color_mode" "RGB")))
-        fill   (param params "fill" "white")
-        gray?  (contains? #{"GRAY" "GRAYA"} mode)
-        image  (call port :image-new width height (if gray? 1 0))
-        layer  (call port :layer-new image name width height (if gray? 2 0) 100.0)]
+  (let [width      (->long (param params "width" 1024) 1024)
+        height     (->long (param params "height" 1024) 1024)
+        name       (str (param params "name" "Untitled"))
+        mode       (str/upper-case (str (param params "color_mode" "RGB")))
+        fill       (param params "fill" "white")
+        resolution (->double (get params "resolution") nil)
+        gray?      (contains? #{"GRAY" "GRAYA"} mode)
+        _          (when (and resolution (not (< 0 resolution 65536)))
+                     (fail (str "resolution must be a positive dpi, got " resolution)))
+        image      (call port :image-new width height (if gray? 1 0))
+        layer      (call port :layer-new image name width height (if gray? 2 0) 100.0)]
+    (when resolution
+      (when-not (call port :image-set-resolution image resolution)
+        (fail (str "GIMP refused the resolution " resolution))))
     (call port :layer-insert image layer 0)
     (fill! port layer fill)
     (let [display? (boolean (call port :display-new image))]
       (call port :displays-flush)
       {"image_id" image "width" width "height" height "color_mode" mode
-       "fill" fill "display_opened" display?})))
+       "fill" fill "resolution" (call port :image-resolution image) "display_opened" display?})))
 
 (defn- layer-summary
   [port index id]
@@ -133,6 +151,7 @@
    "opacity"   (call port :layer-opacity id)
    "width"     (call port :drawable-width id)
    "height"    (call port :drawable-height id)
+   "offsets"   (vec (call port :drawable-offsets id))
    "has_alpha" (boolean (call port :drawable-has-alpha? id))})
 
 (defn- list-layers
@@ -358,6 +377,134 @@
     (call port :displays-flush)
     (layer-summary port 0 layer)))
 
+;; ---------------------------------------------------------------------------
+;; Composition: text, gradients, placed images
+
+(def ^:private anchor-halves
+  "Anchor name -> [kx ky]: the anchor point sits at k/2 of the box on each axis.
+   Halves, so an origin is integer arithmetic on every host."
+  {"top-left"    [0 0] "top"    [1 0] "top-right"    [2 0]
+   "left"        [0 1] "center" [1 1] "right"        [2 1]
+   "bottom-left" [0 2] "bottom" [1 2] "bottom-right" [2 2]})
+
+(defn- anchor!
+  "The [kx ky] of ANCHOR, or a user error listing the accepted names."
+  [anchor]
+  (or (get anchor-halves (str/lower-case (str/trim (str anchor))))
+      (fail (str "anchor must be one of " (str/join ", " (sort (keys anchor-halves)))
+                 ", got " (pr-str anchor)))))
+
+(defn anchor-origin
+  "The top-left corner that puts the anchor point [kx ky] of a W x H box at (X, Y)."
+  [[kx ky] x y w h]
+  [(- x (quot (* w kx) 2)) (- y (quot (* h ky) 2))])
+
+(def ^:private justifications {"left" 0 "right" 1 "center" 2 "fill" 3})
+
+(defn- place-text
+  "A text layer, placed by ANCHOR at (x, y). The font is resolved by exact GIMP
+   name and REFUSED when absent: the reference plug-in substitutes Sans-serif
+   and reports success, so a typo renders as a different typeface."
+  [port params _]
+  (let [image   (image-id-at port (->long (get params "image_index") 0))
+        text    (let [t (get params "text")]
+                  (if (or (nil? t) (= "" (str t))) (fail "place_text requires non-empty text") (str t)))
+        wanted  (str (param params "font" "Sans-serif"))
+        size    (->double (get params "size") 24.0)
+        hex     (colour! (param params "color" "black"))
+        justify (let [j (str/lower-case (str (param params "justify" "left")))]
+                  (or (get justifications j)
+                      (fail (str "justify must be left, center, right or fill, got " (pr-str j)))))
+        k       (anchor! (param params "anchor" "top-left"))
+        x       (->long (get params "x") 0)
+        y       (->long (get params "y") 0)
+        letter  (->double (get params "letter_spacing") 0.0)
+        line    (->double (get params "line_spacing") 0.0)
+        _       (when-not (pos? size) (fail (str "size must be positive, got " size)))
+        font    (or (call port :font-name wanted)
+                    (fail (str "No font named " (pr-str wanted) " is installed in GIMP; list_fonts shows"
+                               " the names it knows. A missing font is refused, not substituted.")))
+        layer   (call port :text-layer-new image text font size)]
+    (call port :layer-insert image layer 0)
+    (when-not (call port :text-layer-style layer hex justify letter line)
+      (fail "GIMP refused the text style"))
+    (let [w       (call port :drawable-width layer)
+          h       (call port :drawable-height layer)
+          [ox oy] (anchor-origin k x y w h)]
+      (call port :layer-set-offsets layer ox oy)
+      (when-let [n (get params "name")] (call port :item-set-name layer (str n)))
+      (call port :displays-flush)
+      {"layer_id" layer "layer_name" (call port :layer-name layer) "font" font "size" size
+       "color" hex "x" ox "y" oy "text_width" w "text_height" h})))
+
+(defn- add-text
+  "The reference contract's add_text, on place_text: top-left at (x, y)."
+  [port params ctx]
+  (let [r (place-text port (dissoc params "anchor" "justify" "name") ctx)]
+    (assoc r "position" [(get r "x") (get r "y")])))
+
+(def ^:private gradient-kinds {"linear" 0 "radial" 2})
+
+(defn- gradient-fill
+  "A two-colour gradient over a layer, from (x1, y1) to (x2, y2) in the layer's
+   own pixels; x2/y2 default to its far corner. color2 may be \"transparent\",
+   which fades color1 out (the layer gains alpha). Linear or radial only."
+  [port params _]
+  (let [image (image-id-at port (->long (get params "image_index") 0))
+        kind  (let [t (str/lower-case (str (param params "gradient_type" "linear")))]
+                (or (get gradient-kinds t)
+                    (fail (str "gradient_type must be linear or radial, got " (pr-str t)))))
+        c1    (colour! (param params "color1" "black"))
+        c2    (let [c (param params "color2" "white")] (if (transparent? c) "transparent" (colour! c)))
+        layer (layer-at port image params "layer_name" "layer_index")
+        w     (call port :drawable-width layer)
+        h     (call port :drawable-height layer)
+        x1    (->double (get params "x1") 0.0)
+        y1    (->double (get params "y1") 0.0)
+        x2    (->double (get params "x2") (double w))
+        y2    (->double (get params "y2") (double h))]
+    (when (and (= "transparent" c2) (not (call port :drawable-has-alpha? layer)))
+      (call port :layer-add-alpha layer))
+    (when-not (call port :gradient-fill layer kind c1 c2 x1 y1 x2 y2)
+      (fail "GIMP refused the gradient"))
+    (call port :displays-flush)
+    {"layer" (call port :layer-name layer) "gradient_type" (if (= 2 kind) "radial" "linear")
+     "color1" c1 "color2" c2 "from" [x1 y1] "to" [x2 y2]}))
+
+(defn- place-image
+  "A file loaded as a NEW layer of an open image, optionally scaled to width
+   and/or height (one alone keeps the aspect ratio), placed by ANCHOR at (x, y)."
+  [port params _]
+  (let [image   (image-id-at port (->long (get params "image_index") 0))
+        path    (or (get params "file_path") (fail "place_image requires file_path"))
+        k       (anchor! (param params "anchor" "top-left"))
+        x       (->long (get params "x") 0)
+        y       (->long (get params "y") 0)
+        width   (->long (get params "width") nil)
+        height  (->long (get params "height") nil)
+        opacity (->double (get params "opacity") nil)]
+    (when (or (and width (not (pos? width))) (and height (not (pos? height))))
+      (fail "place_image width and height must be positive"))
+    (when (and opacity (not (<= 0 opacity 100)))
+      (fail (str "opacity must be 0-100, got " opacity)))
+    (let [layer (call port :file-load-layer image path)
+          w0    (call port :drawable-width layer)
+          h0    (call port :drawable-height layer)
+          [w h] (cond (and width height) [width height]
+                      width  [width (max 1 (quot (* h0 width) w0))]
+                      height [(max 1 (quot (* w0 height) h0)) height]
+                      :else  [w0 h0])]
+      (call port :layer-insert image layer 0)
+      (when (and (not= [w h] [w0 h0]) (not (call port :layer-scale layer w h)))
+        (fail (str "GIMP could not scale the placed image to " w "x" h)))
+      (let [[ox oy] (anchor-origin k x y w h)]
+        (call port :layer-set-offsets layer ox oy)
+        (when opacity (call port :layer-set-opacity layer opacity))
+        (when-let [n (get params "name")] (call port :item-set-name layer (str n)))
+        (call port :displays-flush)
+        {"layer_id" layer "layer_name" (call port :layer-name layer) "file_path" path
+         "x" ox "y" oy "width" w "height" h "source_width" w0 "source_height" h0}))))
+
 (defn- check-server
   [_ _ ctx]
   {"running" true "port" (:port ctx) "implementation" "hive-gimp-native"})
@@ -390,7 +537,11 @@
    "delete_layer"         delete-layer
    "rename_layer"         rename-layer
    "duplicate_layer"      duplicate-layer
-   "set_layer_properties" set-layer-properties})
+   "set_layer_properties" set-layer-properties
+   "add_text"             add-text
+   "place_text"           place-text
+   "gradient_fill"        gradient-fill
+   "place_image"          place-image})
 
 (defn handle
   "REQUEST (parsed wire map) -> response map. Never throws.

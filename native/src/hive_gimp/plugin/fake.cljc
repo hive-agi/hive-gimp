@@ -6,13 +6,21 @@
    plugin-test/the-fake-real-and-declared-ports-agree checks that it names the
    same functions as the port main.cljrs builds from gimp.native/*, and the live
    gate (dev/verify_native_plugin.sh) runs the commands against libgimp inside a
-   real GIMP. Nothing here is evidence about GIMP's behaviour on its own.")
+   real GIMP. Nothing here is evidence about GIMP's behaviour on its own."
+  (:require [clojure.string :as str]))
 
 (defn- rotate-dims [{:keys [width height] :as m} kind]
   (if (= 1 kind) m (assoc m :width height :height width)))
 
+(def fonts
+  "The fonts the fake has installed, by GIMP name."
+  #{"Sans-serif" "Serif" "Monospace" "Lato Black"})
+
 (defn port
-  "A fresh fake GIMP. Images and layers share one id counter, as in GIMP."
+  "A fresh fake GIMP. Images and layers share one id counter, as in GIMP.
+
+   Fonts: only `fonts` are installed. A text layer measures half its size per
+   character wide and its size tall. A loaded file layer is 64x32."
   []
   (let [state  (atom {:next 1 :images [] :image {} :layer {} :saved {}})
         fresh! (fn [] (let [id (:next @state)] (swap! state update :next inc) id))
@@ -23,6 +31,11 @@
                        (swap! state #(-> %
                                          (assoc-in [:image id] m)
                                          (update :images (fn [ids] (vec (cons id ids))))))
+                       id))
+        add-layer! (fn [m]
+                     (let [id (fresh!)]
+                       (swap! state assoc-in [:layer id]
+                              (merge {:opacity 100.0 :visible? true :fill nil :offsets [0 0]} m))
                        id))]
     {:state               state
      :version             (fn [] "3.2.4-fake")
@@ -52,13 +65,15 @@
                             (img image) (lyr layer)
                             (swap! state update-in [:image image :layers] (fn [ls] (vec (remove #{layer} ls))))
                             true)
+     :image-set-resolution (fn [id dpi] (img id) (swap! state assoc-in [:image id :resolution] dpi) true)
+     :image-resolution    (fn [id] (or (:resolution (img id)) 72.0))
      :file-load           (fn [path] (add-image! {:width 64 :height 64 :base 0 :layers [] :file path}))
+     :file-load-layer     (fn [image path]
+                            (img image)
+                            (add-layer! {:name (last (str/split path #"/")) :width 64 :height 32
+                                         :alpha? true :file path}))
      :layer-new           (fn [_ name w h type opacity]
-                            (let [id (fresh!)]
-                              (swap! state assoc-in [:layer id]
-                                     {:name name :width w :height h :alpha? (odd? type) :opacity opacity
-                                      :visible? true :fill nil})
-                              id))
+                            (add-layer! {:name name :width w :height h :alpha? (odd? type) :opacity opacity}))
      :layer-copy          (fn [id]
                             (let [copy (fresh!)
                                   l    (lyr id)]
@@ -74,13 +89,31 @@
      :layer-opacity       (fn [id] (:opacity (lyr id)))
      :layer-add-alpha     (fn [id] (lyr id) (swap! state assoc-in [:layer id :alpha?] true) true)
      :layer-set-opacity   (fn [id o] (lyr id) (swap! state assoc-in [:layer id :opacity] o) true)
+     :layer-set-offsets   (fn [id x y] (lyr id) (swap! state assoc-in [:layer id :offsets] [x y]) true)
+     :layer-scale         (fn [id w h] (lyr id) (swap! state update-in [:layer id] assoc :width w :height h) true)
      :item-set-name       (fn [id n] (lyr id) (swap! state assoc-in [:layer id :name] n) true)
      :item-set-visible    (fn [id v] (lyr id) (swap! state assoc-in [:layer id :visible?] v) true)
      :drawable-width      (fn [id] (:width (lyr id)))
      :drawable-height     (fn [id] (:height (lyr id)))
      :drawable-has-alpha? (fn [id] (:alpha? (lyr id)))
+     :drawable-offsets    (fn [id] (:offsets (lyr id)))
      :fill-color          (fn [id colour] (lyr id) (swap! state assoc-in [:layer id :fill] colour) true)
      :fill-transparent    (fn [id] (lyr id) (swap! state assoc-in [:layer id :fill] :transparent) true)
+     :gradient-fill       (fn [id kind c1 c2 x1 y1 x2 y2]
+                            (lyr id)
+                            (swap! state assoc-in [:layer id :fill] {:gradient kind :from c1 :to c2
+                                                                     :line [x1 y1 x2 y2]})
+                            true)
+     :font-name           (fn [wanted] (get fonts wanted))
+     :text-layer-new      (fn [image text font size]
+                            (img image)
+                            (add-layer! {:name text :text text :font font :alpha? true
+                                         :width (long (* (count text) (/ size 2))) :height (long size)}))
+     :text-layer-style    (fn [id colour justify letter line]
+                            (lyr id)
+                            (swap! state update-in [:layer id] assoc :color colour :justify justify
+                                   :letter-spacing letter :line-spacing line)
+                            true)
      :display-new         (fn [_] false)
      :displays-flush      (fn [] true)
      :file-save           (fn [id path] (img id) (swap! state assoc-in [:saved path] id) true)}))

@@ -91,7 +91,8 @@
     (is (= {"status" "success" "results" {"images" [] "count" 0}} (run p "list_images" {"image_index" 0}))
         "no image open is an empty list, not an error, and an extra param is ignored")
     (let [canvas (run p "new_canvas" {"width" 64 "height" 48 "fill" "orange"})]
-      (is (= {"image_id" 1 "width" 64 "height" 48 "color_mode" "RGB" "fill" "orange" "display_opened" false}
+      (is (= {"image_id" 1 "width" 64 "height" 48 "color_mode" "RGB" "fill" "orange" "resolution" 72.0
+              "display_opened" false}
              (get canvas "results")))
       (is (= "#ffa500" (get-in @(:state p) [:layer 2 :fill]))))
     (is (= {"layer_id" 3 "name" "top" "width" 64 "height" 48 "opacity" 50.0}
@@ -162,6 +163,65 @@
 
 ;; ---------------------------------------------------------------------------
 ;; The fake is the real port's shape
+
+(deftest composition-places-by-anchor-and-refuses-rather-than-substitutes
+  (let [p  (fake/port)
+        ok (fn [t params] (let [r (run p t params)]
+                            (is (= "success" (get r "status")) (pr-str t params r))
+                            (get r "results")))
+        layer (fn [id] (get-in @(:state p) [:layer id]))]
+    (testing "resolution is stored on the image and reported"
+      (is (= 300.0 (get (ok "new_canvas" {"width" 1080 "height" 1920 "fill" "transparent" "resolution" 300})
+                        "resolution")))
+      (is (re-find #"positive dpi" (get (run p "new_canvas" {"width" 8 "height" 8 "resolution" -1}) "error"))))
+    (testing "place_text: the anchor point lands on (x, y); the font is the one asked for"
+      ;; the fake measures size/2 per character: "Any video." at 100 is 500 x 100
+      (let [r (ok "place_text" {"text" "Any video." "font" "Lato Black" "size" 100 "color" "orange"
+                                "x" 540 "y" 960 "anchor" "center" "justify" "center" "name" "line"})]
+        (is (= {"x" 290 "y" 910 "text_width" 500 "text_height" 100 "font" "Lato Black" "color" "#ffa500"
+                "layer_name" "line"}
+               (select-keys r ["x" "y" "text_width" "text_height" "font" "color" "layer_name"])))
+        (is (= [290 910] (:offsets (layer (get r "layer_id")))))
+        (is (= 2 (:justify (layer (get r "layer_id")))) "center is GimpTextJustification 2"))
+      (is (= [-20 -70] (dispatch/anchor-origin [2 2] 100 30 120 100)) "bottom-right")
+      (is (= [100 30] (dispatch/anchor-origin [0 0] 100 30 120 100)) "top-left"))
+    (testing "a missing font, anchor or colour is refused and creates no layer"
+      (let [before (count (get-in @(:state p) [:image 1 :layers]))]
+        (is (re-find #"No font named \"Montserrat\"" (get (run p "place_text" {"text" "x" "font" "Montserrat"}) "error")))
+        (is (re-find #"anchor must be one of" (get (run p "place_text" {"text" "x" "anchor" "middle"}) "error")))
+        (is (re-find #"^Not a colour" (get (run p "place_text" {"text" "x" "color" "blurple"}) "error")))
+        (is (re-find #"non-empty text" (get (run p "place_text" {"text" ""}) "error")))
+        (is (= before (count (get-in @(:state p) [:image 1 :layers]))))))
+    (testing "add_text keeps the reference result shape, and gains the refusal"
+      (is (= [3 4] (get (ok "add_text" {"text" "Hi" "x" 3 "y" 4 "font" "Sans-serif" "size" 24
+                                        "color" "black" "image_index" 0})
+                        "position")))
+      (is (= "error" (get (run p "add_text" {"text" "Hi" "font" "Sans"}) "status"))))
+    (testing "gradient_fill: far corner by default, transparent end gains alpha, other shapes refused"
+      (ok "create_layer" {"name" "glow" "fill" "white"})
+      (swap! (:state p) assoc-in [:layer (some #(when (= "glow" (:name (layer %))) %)
+                                               (get-in @(:state p) [:image 1 :layers])) :alpha?] false)
+      (let [r (ok "gradient_fill" {"color1" "#b8f34a" "color2" "transparent" "gradient_type" "radial"
+                                   "x1" 540 "y1" 600 "layer_name" "glow"})
+            g (first (filter #(= "glow" (:name %)) (vals (:layer @(:state p)))))]
+        (is (= {"from" [540.0 600.0] "to" [1080.0 1920.0] "color2" "transparent" "gradient_type" "radial"}
+               (select-keys r ["from" "to" "color2" "gradient_type"])))
+        (is (= {:gradient 2 :from "#b8f34a" :to "transparent" :line [540.0 600.0 1080.0 1920.0]} (:fill g)))
+        (is (true? (:alpha? g))))
+      (is (re-find #"linear or radial" (get (run p "gradient_fill" {"gradient_type" "conical"}) "error"))))
+    (testing "place_image: one dimension keeps the aspect ratio, then the anchor places the scaled box"
+      ;; the fake loads every file as 64 x 32
+      (is (= {"width" 640 "height" 320 "x" 220 "y" 800 "source_width" 64 "source_height" 32}
+             (select-keys (ok "place_image" {"file_path" "/in/logo.png" "x" 540 "y" 960 "anchor" "center"
+                                             "width" 640})
+                          ["width" "height" "x" "y" "source_width" "source_height"])))
+      (is (= [60 30] ((juxt #(get % "width") #(get % "height"))
+                      (ok "place_image" {"file_path" "/in/logo.png" "height" 30}))))
+      (is (re-find #"must be positive" (get (run p "place_image" {"file_path" "/in/a.png" "width" 0}) "error")))
+      (is (re-find #"0-100" (get (run p "place_image" {"file_path" "/in/a.png" "opacity" 120}) "error"))))
+    (testing "list_layers reports offsets"
+      (is (= [220 800] (get (first (filter #(= 640 (get % "width")) (get (ok "list_layers" {}) "layers")))
+                            "offsets"))))))
 
 (defn- main-port-keys
   "The keys of the `gimp` map main.cljrs builds from gimp.native/*, read as

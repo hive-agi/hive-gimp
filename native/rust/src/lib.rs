@@ -64,6 +64,7 @@ const GIMP_RUN_NONINTERACTIVE: c_int = 1;
 const GIMP_FILL_BACKGROUND: c_int = 1;
 const GIMP_FILL_TRANSPARENT: c_int = 4;
 const GIMP_LAYER_MODE_NORMAL: c_int = 28;
+const GIMP_INTERPOLATION_CUBIC: c_int = 2;
 const G_PARAM_READWRITE: c_uint = 3;
 
 /// sizeof(GObjectClass) on LP64: GTypeClass, construct_properties, seven
@@ -145,6 +146,28 @@ struct Gimp {
     gimp_item_set_visible: unsafe extern "C" fn(Ptr, GBool) -> GBool,
     gimp_layer_copy: unsafe extern "C" fn(Ptr) -> Ptr,
     gimp_layer_set_opacity: unsafe extern "C" fn(Ptr, f64) -> GBool,
+    gimp_image_set_resolution: unsafe extern "C" fn(Ptr, f64, f64) -> GBool,
+    gimp_image_get_resolution: unsafe extern "C" fn(Ptr, *mut f64, *mut f64) -> GBool,
+    gimp_layer_set_offsets: unsafe extern "C" fn(Ptr, c_int, c_int) -> GBool,
+    gimp_layer_scale: unsafe extern "C" fn(Ptr, c_int, c_int, GBool) -> GBool,
+    gimp_drawable_get_offsets: unsafe extern "C" fn(Ptr, *mut c_int, *mut c_int) -> GBool,
+    gimp_file_load_layer: unsafe extern "C" fn(c_int, Ptr, Ptr) -> Ptr,
+    gimp_font_get_by_name: unsafe extern "C" fn(*const c_char) -> Ptr,
+    gimp_resource_get_name: unsafe extern "C" fn(Ptr) -> *mut c_char,
+    gimp_unit_pixel: unsafe extern "C" fn() -> Ptr,
+    gimp_text_layer_new: unsafe extern "C" fn(Ptr, *const c_char, Ptr, f64, Ptr) -> Ptr,
+    gimp_text_layer_set_color: unsafe extern "C" fn(Ptr, Ptr) -> GBool,
+    gimp_text_layer_set_justification: unsafe extern "C" fn(Ptr, c_int) -> GBool,
+    gimp_text_layer_set_letter_spacing: unsafe extern "C" fn(Ptr, f64) -> GBool,
+    gimp_text_layer_set_line_spacing: unsafe extern "C" fn(Ptr, f64) -> GBool,
+    gimp_context_push: unsafe extern "C" fn() -> GBool,
+    gimp_context_pop: unsafe extern "C" fn() -> GBool,
+    gimp_context_set_foreground: unsafe extern "C" fn(Ptr) -> GBool,
+    gimp_context_set_gradient_fg_bg_rgb: unsafe extern "C" fn() -> GBool,
+    gimp_context_set_gradient_fg_transparent: unsafe extern "C" fn() -> GBool,
+    gimp_context_set_interpolation: unsafe extern "C" fn(c_int) -> GBool,
+    gimp_drawable_edit_gradient_fill:
+        unsafe extern "C" fn(Ptr, c_int, f64, GBool, c_int, f64, GBool, f64, f64, f64, f64) -> GBool,
 }
 
 unsafe impl Send for Gimp {}
@@ -239,6 +262,27 @@ fn open() -> Result<Gimp, String> {
         gimp_item_set_visible: sym!(libs, "gimp_item_set_visible"),
         gimp_layer_copy: sym!(libs, "gimp_layer_copy"),
         gimp_layer_set_opacity: sym!(libs, "gimp_layer_set_opacity"),
+        gimp_image_set_resolution: sym!(libs, "gimp_image_set_resolution"),
+        gimp_image_get_resolution: sym!(libs, "gimp_image_get_resolution"),
+        gimp_layer_set_offsets: sym!(libs, "gimp_layer_set_offsets"),
+        gimp_layer_scale: sym!(libs, "gimp_layer_scale"),
+        gimp_drawable_get_offsets: sym!(libs, "gimp_drawable_get_offsets"),
+        gimp_file_load_layer: sym!(libs, "gimp_file_load_layer"),
+        gimp_font_get_by_name: sym!(libs, "gimp_font_get_by_name"),
+        gimp_resource_get_name: sym!(libs, "gimp_resource_get_name"),
+        gimp_unit_pixel: sym!(libs, "gimp_unit_pixel"),
+        gimp_text_layer_new: sym!(libs, "gimp_text_layer_new"),
+        gimp_text_layer_set_color: sym!(libs, "gimp_text_layer_set_color"),
+        gimp_text_layer_set_justification: sym!(libs, "gimp_text_layer_set_justification"),
+        gimp_text_layer_set_letter_spacing: sym!(libs, "gimp_text_layer_set_letter_spacing"),
+        gimp_text_layer_set_line_spacing: sym!(libs, "gimp_text_layer_set_line_spacing"),
+        gimp_context_push: sym!(libs, "gimp_context_push"),
+        gimp_context_pop: sym!(libs, "gimp_context_pop"),
+        gimp_context_set_foreground: sym!(libs, "gimp_context_set_foreground"),
+        gimp_context_set_gradient_fg_bg_rgb: sym!(libs, "gimp_context_set_gradient_fg_bg_rgb"),
+        gimp_context_set_gradient_fg_transparent: sym!(libs, "gimp_context_set_gradient_fg_transparent"),
+        gimp_context_set_interpolation: sym!(libs, "gimp_context_set_interpolation"),
+        gimp_drawable_edit_gradient_fill: sym!(libs, "gimp_drawable_edit_gradient_fill"),
         _libs: libs,
     })
 }
@@ -777,6 +821,150 @@ pub unsafe extern "C" fn cljrs_init(registry: *mut Registry) {
     reg.define_in(ns, "layer-set-opacity", wrap_fn2("layer-set-opacity", |id: i64, opacity: f64| {
         let g = gimp()?;
         Ok::<bool, String>(unsafe { (g.gimp_layer_set_opacity)(item(g, id)?, opacity) } != 0)
+    }));
+
+    // Composition: resolution, offsets, placed files, text, gradients.
+    reg.define_in(ns, "image-set-resolution", wrap_fn2("image-set-resolution", |id: i64, dpi: f64| {
+        let g = gimp()?;
+        Ok::<bool, String>(unsafe { (g.gimp_image_set_resolution)(image(g, id)?, dpi, dpi) } != 0)
+    }));
+    // (image-resolution id) -> the x resolution in dpi.
+    reg.define_in(ns, "image-resolution", wrap_fn1("image-resolution", |id: i64| {
+        let g = gimp()?;
+        let (mut x, mut y) = (0.0f64, 0.0f64);
+        if unsafe { (g.gimp_image_get_resolution)(image(g, id)?, &mut x, &mut y) } == 0 {
+            return Err("gimp_image_get_resolution failed".to_string());
+        }
+        Ok::<f64, String>(x)
+    }));
+    reg.define_in(ns, "layer-set-offsets", wrap_fn3("layer-set-offsets", |id: i64, x: i64, y: i64| {
+        let g = gimp()?;
+        Ok::<bool, String>(unsafe { (g.gimp_layer_set_offsets)(item(g, id)?, x as c_int, y as c_int) } != 0)
+    }));
+    // (layer-scale id w h): cubic interpolation, scaled about the layer's own origin.
+    reg.define_in(ns, "layer-scale", wrap_fn3("layer-scale", |id: i64, w: i64, h: i64| {
+        let g = gimp()?;
+        let layer = item(g, id)?;
+        unsafe {
+            (g.gimp_context_push)();
+            (g.gimp_context_set_interpolation)(GIMP_INTERPOLATION_CUBIC);
+            let ok = (g.gimp_layer_scale)(layer, w as c_int, h as c_int, 1);
+            (g.gimp_context_pop)();
+            Ok::<bool, String>(ok != 0)
+        }
+    }));
+    // (drawable-offsets id) -> "x,y".
+    reg.define_in(ns, "drawable-offsets", wrap_fn1("drawable-offsets", |id: i64| {
+        let g = gimp()?;
+        let (mut x, mut y): (c_int, c_int) = (0, 0);
+        if unsafe { (g.gimp_drawable_get_offsets)(item(g, id)?, &mut x, &mut y) } == 0 {
+            return Err("gimp_drawable_get_offsets failed".to_string());
+        }
+        Ok::<String, String>(format!("{x},{y}"))
+    }));
+    // (file-load-layer image path) -> layer id, not inserted.
+    reg.define_in(ns, "file-load-layer", wrap_fn2("file-load-layer", |img: i64, path: String| {
+        let g = gimp()?;
+        let target = image(g, img)?;
+        let p = cstring(&path)?;
+        unsafe {
+            let file = (g.g_file_new_for_path)(p.as_ptr());
+            let layer = (g.gimp_file_load_layer)(GIMP_RUN_NONINTERACTIVE, target, file);
+            (g.g_object_unref)(file);
+            if layer.is_null() {
+                return Err(format!("GIMP could not load {path:?} as a layer"));
+            }
+            Ok::<i64, String>((g.gimp_item_get_id)(layer) as i64)
+        }
+    }));
+    // (font-name wanted) -> GIMP's name for the font, or nil when none is
+    // installed under exactly that name. Never a substitute.
+    reg.define_in(ns, "font-name", wrap_fn1("font-name", |wanted: String| {
+        let g = gimp()?;
+        let n = cstring(&wanted)?;
+        let font = unsafe { (g.gimp_font_get_by_name)(n.as_ptr()) };
+        if font.is_null() {
+            return Ok::<Option<String>, String>(None);
+        }
+        Ok(take_string(g, unsafe { (g.gimp_resource_get_name)(font) }))
+    }));
+    // (text-layer-new image text font-name size-px) -> layer id, not inserted.
+    reg.define_in(ns, "text-layer-new", wrap_fn_variadic("text-layer-new", 4, |args: &[Value]| {
+        let g = gimp()?;
+        let img = image(g, long_arg(args, 0)?)?;
+        let text = cstring(&string_arg(args, 1)?)?;
+        let font_name = string_arg(args, 2)?;
+        let n = cstring(&font_name)?;
+        let size = f64_arg(args, 3)?;
+        unsafe {
+            let font = (g.gimp_font_get_by_name)(n.as_ptr());
+            if font.is_null() {
+                return Err(format!("no font named {font_name:?}"));
+            }
+            let layer = (g.gimp_text_layer_new)(img, text.as_ptr(), font, size, (g.gimp_unit_pixel)());
+            if layer.is_null() {
+                return Err("gimp_text_layer_new returned NULL".to_string());
+            }
+            Ok::<i64, String>((g.gimp_item_get_id)(layer) as i64)
+        }
+    }));
+    // (text-layer-style layer "#rrggbb" justification letter-spacing line-spacing) -> bool.
+    reg.define_in(ns, "text-layer-style", wrap_fn_variadic("text-layer-style", 5, |args: &[Value]| {
+        let g = gimp()?;
+        let layer = item(g, long_arg(args, 0)?)?;
+        let colour = string_arg(args, 1)?;
+        let spec = cstring(&colour)?;
+        unsafe {
+            let color = (g.gegl_color_new)(spec.as_ptr());
+            if color.is_null() {
+                return Err(format!("GEGL cannot parse the colour {colour:?}"));
+            }
+            let ok = (g.gimp_text_layer_set_color)(layer, color) != 0
+                && (g.gimp_text_layer_set_justification)(layer, long_arg(args, 2)? as c_int) != 0
+                && (g.gimp_text_layer_set_letter_spacing)(layer, f64_arg(args, 3)?) != 0
+                && (g.gimp_text_layer_set_line_spacing)(layer, f64_arg(args, 4)?) != 0;
+            (g.g_object_unref)(color);
+            Ok::<bool, String>(ok)
+        }
+    }));
+    // (gradient-fill drawable kind "#from" "#to"|"transparent" x1 y1 x2 y2) -> bool.
+    // KIND is GimpGradientType (0 linear, 2 radial). The context is pushed and
+    // popped, so the foreground, background and gradient do not leak into
+    // later commands.
+    reg.define_in(ns, "gradient-fill", wrap_fn_variadic("gradient-fill", 8, |args: &[Value]| {
+        let g = gimp()?;
+        let drawable = item(g, long_arg(args, 0)?)?;
+        let kind = long_arg(args, 1)? as c_int;
+        let from = string_arg(args, 2)?;
+        let to = string_arg(args, 3)?;
+        let (x1, y1, x2, y2) = (f64_arg(args, 4)?, f64_arg(args, 5)?, f64_arg(args, 6)?, f64_arg(args, 7)?);
+        let from_spec = cstring(&from)?;
+        let to_spec = cstring(if to == "transparent" { "#000000" } else { &to })?;
+        unsafe {
+            let fg = (g.gegl_color_new)(from_spec.as_ptr());
+            let bg = (g.gegl_color_new)(to_spec.as_ptr());
+            if fg.is_null() || bg.is_null() {
+                if !fg.is_null() { (g.g_object_unref)(fg); }
+                if !bg.is_null() { (g.g_object_unref)(bg); }
+                return Err(format!("GEGL cannot parse {from:?} or {to:?}"));
+            }
+            (g.gimp_context_push)();
+            let set = (g.gimp_context_set_foreground)(fg) != 0
+                && (g.gimp_context_set_background)(bg) != 0
+                && if to == "transparent" {
+                    (g.gimp_context_set_gradient_fg_transparent)() != 0
+                } else {
+                    (g.gimp_context_set_gradient_fg_bg_rgb)() != 0
+                };
+            let ok = set && (g.gimp_drawable_edit_gradient_fill)(drawable, kind, 0.0, 0, 1, 0.0, 1, x1, y1, x2, y2) != 0;
+            (g.gimp_context_pop)();
+            (g.g_object_unref)(fg);
+            (g.g_object_unref)(bg);
+            if !set {
+                return Err("GIMP refused the gradient colours (are gradient resources loaded? do not start GIMP with -d)".to_string());
+            }
+            Ok::<bool, String>(ok)
+        }
     }));
 
     reg.env().mark_loaded(ns);

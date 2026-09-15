@@ -87,7 +87,22 @@
     (check "delete unknown refused" "No layer named \"ghost\"" (get (run "delete_layer" {"layer_name" "ghost"}) "error"))
     (check "set visible false" false
            (get-in (run "set_layer_properties" {"layer_name" "halo" "visible" false}) ["results" "visible"]))
-    (check "xcf suffix enforced" "error" (get (run "save_xcf" {"file_path" "/tmp/a.png"}) "status"))))
+    (check "xcf suffix enforced" "error" (get (run "save_xcf" {"file_path" "/tmp/a.png"}) "status"))
+    ;; composition
+    (check "anchor bottom-right" [-20 -70] (dispatch/anchor-origin [2 2] 100 30 120 100))
+    (check "anchor center" [290 910] (dispatch/anchor-origin [1 1] 540 960 500 100))
+    (check "place_text centred" [290 910]
+           ((juxt #(get % "x") #(get % "y"))
+            (get (run "place_text" {"text" "Any video." "font" "Lato Black" "size" 100
+                                    "x" 540 "y" 960 "anchor" "center"}) "results")))
+    (check "missing font refused" "error" (get (run "place_text" {"text" "x" "font" "Montserrat"}) "status"))
+    (check "unknown anchor refused" "error" (get (run "place_text" {"text" "x" "anchor" "middle"}) "status"))
+    (check "gradient default end" [64.0 48.0]
+           (get-in (run "gradient_fill" {"color1" "red" "color2" "transparent" "layer_name" "Untitled"}) ["results" "to"]))
+    (check "gradient shape refused" "error" (get (run "gradient_fill" {"gradient_type" "conical"}) "status"))
+    (check "place_image keeps aspect" [640 320]
+           ((juxt #(get % "width") #(get % "height"))
+            (get (run "place_image" {"file_path" "/in/a.png" "width" 640}) "results")))))
 
 
 (dotimes [_ 60] (run-checks))

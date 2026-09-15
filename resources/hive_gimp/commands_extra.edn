@@ -19,4 +19,42 @@
   :tool    "gimp_restart_plugin"
   :doc     "Make the GIMP plugin drop and re-bind its listening socket in place. Use when the port is held but no longer answering; it does not restart GIMP and does not touch open images."
   :params  []}
+
+ ;; Composition commands answered by the native plug-in (native/), not by the
+ ;; reference Python plug-in. They exist for layout work where the reference
+ ;; add_text falls short: it has no anchor, so centring needs a second call, and
+ ;; it silently substitutes Sans-serif for a font that is not installed.
+
+ {:command "place_text"
+  :tool    "gimp_place_text"
+  :doc     "Add a text layer placed by an anchor point. The font is matched by exact GIMP name (see list_fonts) and refused when absent, never substituted. Returns the font used and the layer's final offsets and size. Native plug-in only."
+  :params  [
+            {:name "text" :wire "text" :schema :string :required? true :doc "The text; newlines make lines"}
+            {:name "font" :wire "font" :schema :string :default "Sans-serif" :doc "Exact GIMP font name, e.g. \"Lato Black\""}
+            {:name "size" :wire "size" :schema :double :default 24 :doc "Font size in pixels"}
+            {:name "color" :wire "color" :schema :string :default "black" :doc "CSS name, #rgb, #rrggbb or rgb()"}
+            {:name "x" :wire "x" :schema :long :default 0 :doc "Anchor point x in image pixels"}
+            {:name "y" :wire "y" :schema :long :default 0 :doc "Anchor point y in image pixels"}
+            {:name "anchor" :wire "anchor" :schema :string :default "top-left" :doc "Which point of the text box sits at (x, y): top-left, top, top-right, left, center, right, bottom-left, bottom, bottom-right"}
+            {:name "justify" :wire "justify" :schema :string :default "left" :doc "left, center, right or fill, for multi-line text"}
+            {:name "letter-spacing" :wire "letter_spacing" :schema :double :default 0 :doc "Extra pixels between letters (negative tightens)"}
+            {:name "line-spacing" :wire "line_spacing" :schema :double :default 0 :doc "Extra pixels between lines (negative tightens)"}
+            {:name "name" :wire "name" :schema :string :nilable? true :default nil :doc "Layer name; defaults to the text"}
+            {:name "image-index" :wire "image_index" :schema :long :default 0 :doc "Target image index (default 0)"}
+           ]}
+
+ {:command "place_image"
+  :tool    "gimp_place_image"
+  :doc     "Load an image file (PNG, JPEG, SVG, ...) as a new layer of an open image, optionally scaled (width or height alone keeps the aspect ratio), and place it by an anchor point. Native plug-in only."
+  :params  [
+            {:name "file-path" :wire "file_path" :schema :string :required? true :doc "Absolute path of the file to place"}
+            {:name "x" :wire "x" :schema :long :default 0 :doc "Anchor point x in image pixels"}
+            {:name "y" :wire "y" :schema :long :default 0 :doc "Anchor point y in image pixels"}
+            {:name "anchor" :wire "anchor" :schema :string :default "top-left" :doc "Which point of the placed layer sits at (x, y); same names as place_text"}
+            {:name "width" :wire "width" :schema :long :nilable? true :default nil :doc "Scale to this width"}
+            {:name "height" :wire "height" :schema :long :nilable? true :default nil :doc "Scale to this height"}
+            {:name "opacity" :wire "opacity" :schema :double :nilable? true :default nil :doc "Layer opacity 0-100"}
+            {:name "name" :wire "name" :schema :string :nilable? true :default nil :doc "Layer name; defaults to the file name"}
+            {:name "image-index" :wire "image_index" :schema :long :default 0 :doc "Target image index (default 0)"}
+           ]}
 ]

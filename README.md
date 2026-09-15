@@ -161,6 +161,12 @@ opens a display, and only running it showed what happens when it cannot.
   `AttributeError` on `None` inside GIMP. Same shape as the `call_api`
   `KeyError`. Pass `{:origin_x 0 :origin_y 0 :width w :height h}`.
 
+- **`add_text` substitutes a font and reports success.** `_resolve_font` walks
+  aliases down to `Sans-serif` and then the first installed font. Measured
+  against GIMP 3.2.4: `add_text` with `"Montserrat ExtraBold"` (not installed)
+  answered success and the layer's font read back `Sans-serif`. The native
+  plug-in's `place_text` and `add_text` refuse the name instead.
+
 - **`check_server` and `restart_server` are handled by the plugin but were never
   exposed.** The Python server spends both names on host-side connection
   management. They are in `commands_extra.edn`.
@@ -299,7 +305,8 @@ reaches it with nothing but a port:
 (gimp/invoke g "new_canvas" {:width 320 :height 200 :fill "orange"})
 ```
 
-It implements 21 of the catalogued commands today: server and info
+It implements 25 of the catalogued commands today: composition (`place_text`,
+`add_text`, `gradient_fill`, `place_image`; see `native/README.md`), server and info
 (`check_server`, `get_gimp_info`), files (`new_canvas`, `open_image`,
 `save_xcf`, `export_image`, `close_image`, `list_images`,
 `get_image_metadata`), whole-image transforms (`scale_image`, `crop_to_rect`,

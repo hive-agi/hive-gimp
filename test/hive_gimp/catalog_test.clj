@@ -70,7 +70,12 @@
 (deftest the-hand-maintained-additions-are-present
   (testing "found by the generator's cross-check: the plugin handles these, the Python server never sent them"
     (is (some? (catalog/descriptor "check_server")))
-    (is (some? (catalog/descriptor "restart_server")))))
+    (is (some? (catalog/descriptor "restart_server"))))
+  (testing "composition commands the native plug-in answers"
+    (is (= #{"text" "font" "size" "color" "x" "y" "anchor" "justify" "letter-spacing" "line-spacing" "name"
+             "image-index"}
+           (set (map :name (:params (catalog/descriptor "place_text"))))))
+    (is (some? (catalog/descriptor "place_image")))))
 
 ;; =============================================================================
 ;; Search

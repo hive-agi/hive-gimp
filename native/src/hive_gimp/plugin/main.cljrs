@@ -47,7 +47,10 @@
    :image-rotate        gimp.native/image-rotate
    :image-flip          gimp.native/image-flip
    :image-remove-layer  gimp.native/image-remove-layer
+   :image-set-resolution gimp.native/image-set-resolution
+   :image-resolution    gimp.native/image-resolution
    :file-load           gimp.native/file-load
+   :file-load-layer     gimp.native/file-load-layer
    :layer-new           gimp.native/layer-new
    :layer-copy          gimp.native/layer-copy
    :layer-insert        gimp.native/layer-insert
@@ -56,13 +59,20 @@
    :layer-opacity       gimp.native/layer-opacity
    :layer-add-alpha     gimp.native/layer-add-alpha
    :layer-set-opacity   gimp.native/layer-set-opacity
+   :layer-set-offsets   gimp.native/layer-set-offsets
+   :layer-scale         gimp.native/layer-scale
    :item-set-name       gimp.native/item-set-name
    :item-set-visible    gimp.native/item-set-visible
    :drawable-width      gimp.native/drawable-width
    :drawable-height     gimp.native/drawable-height
    :drawable-has-alpha? gimp.native/drawable-has-alpha?
+   :drawable-offsets    (fn [id] (ids (gimp.native/drawable-offsets id)))
    :fill-color          gimp.native/fill-color
    :fill-transparent    gimp.native/fill-transparent
+   :gradient-fill       gimp.native/gradient-fill
+   :font-name           gimp.native/font-name
+   :text-layer-new      gimp.native/text-layer-new
+   :text-layer-style    gimp.native/text-layer-style
    :display-new         gimp.native/display-new
    :displays-flush      gimp.native/displays-flush
    :file-save           gimp.native/file-save})

@@ -34,7 +34,8 @@ The portable half runs identically on the JVM, ClojureWasm (cljw) and cljrs:
 | server | `check_server`, `get_gimp_info`, `quit_server` (stops serving, lets GIMP's procedure return) |
 | files | `new_canvas`, `open_image`, `save_xcf` (refuses a path not ending `.xcf`), `export_image` (through a flattened duplicate, so the open image keeps its layers), `close_image`, `list_images`, `get_image_metadata` |
 | image | `scale_image`, `crop_to_rect` (refuses a rectangle outside the image), `rotate_image` (90/180/270 only; other angles are refused, not approximated), `flip_image`, `flatten_image` |
-| layers | `create_layer`, `list_layers`, `fill_layer`, `delete_layer`, `rename_layer`, `duplicate_layer` (copy goes directly above), `set_layer_properties` (opacity, visible; blend modes other than NORMAL are refused) |
+| layers | `create_layer`, `list_layers` (with offsets), `fill_layer`, `delete_layer`, `rename_layer`, `duplicate_layer` (copy goes directly above), `set_layer_properties` (opacity, visible; blend modes other than NORMAL are refused) |
+| composition | `place_text` (anchor point, justify, spacing; font matched by exact GIMP name and refused when absent), `add_text` (the reference contract, on place_text), `gradient_fill` (linear or radial, `color2` may be `transparent`), `place_image` (a file as a new layer, scaled and anchored); `new_canvas` honours `resolution`, which an exported PNG carries as pHYs |
 
 A layer named or indexed that does not exist is an error, never a silent fall
 back to the top layer. Every other catalogued command answers
@@ -58,6 +59,18 @@ Start it by hand:
       -b '(plug-in-hive-gimp-native #:run-mode RUN-NONINTERACTIVE)' -b '(gimp-quit 0)'
 
 With a GUI, drop `-i -d -f`: the batch still runs and GIMP keeps its window.
+
+**`-f` means no fonts.** For text work drop it: with `-f` GIMP knows no font at
+all, so `place_text` refuses every name. `-d` (no brushes, patterns, gradient
+files) does not affect `gradient_fill`, which uses the built-in FG-to-BG
+gradients. Headless startup to a listening socket measured 9 s without `-f`.
+
+    flatpak run org.gimp.GIMP -n -i -d --batch-interpreter plug-in-script-fu-eval \
+      -b '(plug-in-hive-gimp-native #:run-mode RUN-NONINTERACTIVE)' -b '(gimp-quit 0)'
+
+**Layer opacity composites in linear light.** 22% of `#b8f34a` over `#0b0e0d`
+reads back as `(93,124,39)`, about 45% to the eye. Budget single-digit opacities
+for glows.
 
 ## Things that were measured, not assumed
 
