@@ -10,16 +10,16 @@
   ;; contract lib rather than on a host namespace is what lets any host, hive-mcp
   ;; or not, mount this jar. Requiring hive-mcp here would be the axiom violation
   ;; that makes the published artifact unloadable from a maven fetch.
-  io.github.hive-agi/hive-addon   {:mvn/version "1.0.10"}
+  io.github.hive-agi/hive-addon   {:mvn/version "1.0.11"}
 
   ;; hive-spi: pure SPI contract leaf (protocols, schema registry, generators).
   io.github.hive-agi/hive-spi     {:mvn/version "1.1.1"}
 
   ;; hive-dsl: Result monad, rescue/guard, closed ADTs.
-  io.github.hive-agi/hive-dsl     {:mvn/version "0.5.27"}
+  io.github.hive-agi/hive-dsl     {:mvn/version "0.5.28"}
 
   ;; hive-di: typed config DI (env sources, coalesce).
-  io.github.hive-agi/hive-di      {:mvn/version "0.4.12"}
+  io.github.hive-agi/hive-di      {:mvn/version "0.4.13"}
 
   ;; hive-schemas: malli value objects plus the schema-driven stub/spy doubles
   ;; the suite injects through the transport port. Top level, not test-only:
@@ -28,7 +28,7 @@
 
  :aliases
  {;; clojure -T:build <task> -- canonical hive build (jar / install / bump / deploy).
-  :build {:deps {io.github.hive-agi/hive-build {:mvn/version "0.1.17"}}
+  :build {:deps {io.github.hive-agi/hive-build {:mvn/version "0.1.18"}}
           :ns-default hive-build.api}
 
   ;; The libpython-clj transport is OPTIONAL and lives behind this alias.
@@ -50,7 +50,7 @@
   :test {:extra-paths ["test" "native/src"]
          :extra-deps {lambdaisland/kaocha    {:mvn/version "1.91.1392"}
                       org.clojure/test.check {:mvn/version "1.1.3"}
-                      io.github.hive-agi/hive-test {:mvn/version "0.4.5"}}
+                      io.github.hive-agi/hive-test {:mvn/version "0.4.6"}}
          ;; Without :main-opts, `clojure -M:test` starts a REPL and runs no
          ;; tests, so a release gate invoking it would pass on every input.
          :main-opts ["-m" "kaocha.runner"]}
@@ -71,7 +71,7 @@
   :test-python {:extra-paths ["test" "native/src"]
                 :extra-deps {lambdaisland/kaocha    {:mvn/version "1.91.1392"}
                              org.clojure/test.check {:mvn/version "1.1.3"}
-                             io.github.hive-agi/hive-test {:mvn/version "0.4.5"}
+                             io.github.hive-agi/hive-test {:mvn/version "0.4.6"}
                              clj-python/libpython-clj  {:mvn/version "2.026"}}
                 :main-opts ["-m" "kaocha.runner"]}}
 
