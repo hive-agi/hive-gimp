@@ -11,7 +11,10 @@
    is derived from a GIMP 3.x plugin (`Gimp.get_images`, `Gegl.Color`,
    PyGObject). GIMP 2.10 exposes a different Python API entirely (`pdb.gimp_*`,
    `gimpfu`), so against a 2.10 host the failures surface deep inside GIMP and
-   read as nonsense. Saying so before the first command is the whole point."
+   read as nonsense. Saying so before the first command is the whole point.
+
+   Portable (.cljc since 2026-09-20): clojure.string only. `hive-gimp.doctor`,
+   which runs the stages, is the part that needs a host."
   (:require [clojure.string :as str]))
 
 ;; Copyright (C) 2026 Pedro Gomes Branquinho (BuddhiLW) <pedrogbranquinho@gmail.com>

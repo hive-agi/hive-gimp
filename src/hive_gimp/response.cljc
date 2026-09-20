@@ -7,10 +7,15 @@
    same three-line unwrap appears eighty times in their server and why a
    command that forgets it silently returns the envelope instead of the value.
 
-   Interpreting once, here, over a VALUE, is the whole difference."
+   Interpreting once, here, over a VALUE, is the whole difference.
+
+   Portable (.cljc since 2026-09-20). It reads the shape gate and its
+   explanation from `hive-gimp.shape`, which is data plus plain predicates,
+   rather than from `hive-gimp.schema`, which compiles those same shapes with
+   malli and is therefore JVM only. The schema require is gone on purpose."
   (:require [clojure.string :as str]
             [hive-dsl.result :as r]
-            [hive-gimp.schema :as schema]))
+            [hive-gimp.shape :as shape]))
 
 ;; Copyright (C) 2026 Pedro Gomes Branquinho (BuddhiLW) <pedrogbranquinho@gmail.com>
 ;;
@@ -50,12 +55,12 @@
    `command` is carried through so a caller holding several outcomes can tell
    which one failed without correlating by position."
   [command raw]
-  (if-not (schema/raw-response? raw)
+  (if-not (shape/raw-response? raw)
     {:outcome :error
      :command command
      :reason  :gimp/malformed-response
      :message "GIMP returned an object without a usable status."
-     :detail  (schema/explain schema/RawResponse raw)}
+     :detail  (shape/explain-raw-response raw)}
     (if (= "success" (get raw "status"))
       {:outcome :ok
        :command command

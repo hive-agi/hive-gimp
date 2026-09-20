@@ -14,7 +14,8 @@
             [hive-gimp.codec :as codec]
             [hive-gimp.command :as command]
             [hive-gimp.ports :as ports]
-            [hive-gimp.response :as response]))
+            [hive-gimp.response :as response]
+            [hive-help.core :as help]))
 
 ;; Copyright (C) 2026 Pedro Gomes Branquinho (BuddhiLW) <pedrogbranquinho@gmail.com>
 ;;
@@ -51,6 +52,30 @@
       (catch Throwable t
         (transport-failure command t)))))
 
+(defn unknown-command-outcome
+  "The `Outcome` for a name no descriptor describes.
+
+   The contract ships ~80 commands in two vocabularies (`place_text` and
+   `gimp_place_text`), which is exactly the size where a typo is likely and a
+   bare refusal is useless. hive-help supplies the fleet's shared shape for
+   this, including edit-distance suggestions, so the reader is told what they
+   probably meant instead of being sent to go and read a catalog.
+
+   Lives here, at the boundary: `hive-gimp.command` answers the error VALUE
+   and is .cljc, so it cannot require hive-help."
+  [command-or-tool]
+  (let [names (vec (catalog/command-names))]
+    {:outcome :error
+     :command (str command-or-tool)
+     :reason  :gimp/unknown-command
+     :message (help/unknown-command
+               {:tool           "gimp_exec"
+                :command        (str command-or-tool)
+                :valid-commands (help/suggest command-or-tool names 12)
+                :examples       ["new_canvas" "place_text" "export_image"]})
+     :detail  (str "The contract describes " (count names)
+                   " commands. gimp_catalog lists or searches all of them.")}))
+
 (defn invoke
   "Run `command-or-tool` with kebab-case `args`. Returns an `Outcome`.
 
@@ -63,11 +88,7 @@
        (if (r/err? built)
          (response/from-error (:command descriptor) built)
          (send-command transport (:ok built))))
-     {:outcome :error
-      :command (str command-or-tool)
-      :reason  :gimp/unknown-command
-      :message (str "No GIMP command named " (pr-str command-or-tool) ".")
-      :detail  "Use the gimp_catalog tool to list or search the available commands."})))
+     (unknown-command-outcome command-or-tool))))
 
 (defn invoke!
   "Like `invoke`, but throws on failure and returns the value on success.

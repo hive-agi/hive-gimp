@@ -9,10 +9,16 @@
 
    This is also the ONLY namespace allowed to touch both vocabularies. Above
    it, arguments are kebab-case keywords; below it, JSON object keys are
-   snake_case strings. A leak in either direction shows up here or nowhere."
+   snake_case strings. A leak in either direction shows up here or nowhere.
+
+   Portable (.cljc since 2026-09-20). The descriptor gate and its explanation
+   come from `hive-gimp.shape`, which is data plus plain predicates, rather
+   than from `hive-gimp.schema`, which compiles the same shapes with malli and
+   is therefore JVM only. The schema require is gone on purpose; the two
+   predicates are proved equivalent in hive-gimp.shape-equivalence-test."
   (:require [clojure.string :as str]
             [hive-dsl.result :as r]
-            [hive-gimp.schema :as schema]))
+            [hive-gimp.shape :as shape]))
 
 ;; Copyright (C) 2026 Pedro Gomes Branquinho (BuddhiLW) <pedrogbranquinho@gmail.com>
 ;;
@@ -179,10 +185,10 @@
   [descriptor args]
   (let [args (or args {})]
     (cond
-      (not (schema/descriptor? descriptor))
+      (not (shape/descriptor? descriptor))
       (r/err :gimp/unknown-command
              {:message "No such GIMP command."
-              :detail  (schema/explain schema/Descriptor descriptor)})
+              :detail  (shape/explain-descriptor descriptor)})
 
       (seq (unknown-arguments descriptor args))
       (r/err :gimp/unknown-parameter

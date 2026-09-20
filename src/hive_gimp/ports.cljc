@@ -17,7 +17,11 @@
                       and keeps every GIMP command.
 
    Collapsing these into one port would be the mistake: it would make the
-   command pipeline unusable without a Python runtime it never needed."
+   command pipeline unusable without a Python runtime it never needed.
+
+   Portable (.cljc since 2026-09-20): a protocol declaration names no host.
+   The ADAPTERS are the host-specific part and stay .clj, which is the whole
+   reason the seam is worth having."
   (:refer-clojure :exclude [flush]))
 
 ;; Copyright (C) 2026 Pedro Gomes Branquinho (BuddhiLW) <pedrogbranquinho@gmail.com>

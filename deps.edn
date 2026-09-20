@@ -18,6 +18,12 @@
   ;; hive-dsl: Result monad, rescue/guard, closed ADTs.
   io.github.hive-agi/hive-dsl     {:mvn/version "0.5.31"}
 
+  ;; hive-help: the fleet's shared vocabulary for an actionable refusal, with
+  ;; edit-distance suggestions. Boundary only. The portable core (shape,
+  ;; command, response, ports, doctor.verdict) answers error VALUES and never
+  ;; requires this, because it has to load where hive-help does not.
+  io.github.hive-agi/hive-help    {:mvn/version "0.1.4"}
+
   ;; hive-di: typed config DI (env sources, coalesce).
   io.github.hive-agi/hive-di      {:mvn/version "0.4.16"}
 
