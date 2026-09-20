@@ -217,7 +217,7 @@ Every field has a working default; a stock install needs none.
 | env | default | |
 |---|---|---|
 | `HIVE_GIMP_HOST` | `127.0.0.1` | plugin socket host |
-| `HIVE_GIMP_PORT` | `9877` | plugin socket port |
+| `HIVE_GIMP_PORT` | `9877` | plugin socket port: `9877` is the reference Python plugin, the native plug-in (`native/`) listens on `9878` so both can run side by side |
 | `HIVE_GIMP_TIMEOUT_MS` | `30000` | read timeout for one command |
 | `HIVE_GIMP_CONNECT_TIMEOUT_MS` | `5000` | connect timeout |
 | `HIVE_GIMP_TRANSPORT` | `socket` | `socket` or `python` |

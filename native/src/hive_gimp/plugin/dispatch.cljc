@@ -447,14 +447,15 @@
 
 (defn- gradient-fill
   "A two-colour gradient over a layer, from (x1, y1) to (x2, y2) in the layer's
-   own pixels; x2/y2 default to its far corner. color2 may be \"transparent\",
-   which fades color1 out (the layer gains alpha). Linear or radial only."
+   own pixels; x2/y2 default to its far corner. Either colour may be
+   \"transparent\": color2 fades color1 out, color1 fades color2 in (the layer
+   gains alpha). Linear or radial only."
   [port params _]
   (let [image (image-id-at port (->long (get params "image_index") 0))
         kind  (let [t (str/lower-case (str (param params "gradient_type" "linear")))]
                 (or (get gradient-kinds t)
                     (fail (str "gradient_type must be linear or radial, got " (pr-str t)))))
-        c1    (colour! (param params "color1" "black"))
+        c1    (let [c (param params "color1" "black")] (if (transparent? c) "transparent" (colour! c)))
         c2    (let [c (param params "color2" "white")] (if (transparent? c) "transparent" (colour! c)))
         layer (layer-at port image params "layer_name" "layer_index")
         w     (call port :drawable-width layer)
@@ -463,7 +464,9 @@
         y1    (->double (get params "y1") 0.0)
         x2    (->double (get params "x2") (double w))
         y2    (->double (get params "y2") (double h))]
-    (when (and (= "transparent" c2) (not (call port :drawable-has-alpha? layer)))
+    (when (and (= "transparent" c1) (= "transparent" c2))
+      (fail "a gradient needs one colour: color1 and color2 are both transparent"))
+    (when (and (or (= "transparent" c1) (= "transparent" c2)) (not (call port :drawable-has-alpha? layer)))
       (call port :layer-add-alpha layer))
     (when-not (call port :gradient-fill layer kind c1 c2 x1 y1 x2 y2)
       (fail "GIMP refused the gradient"))

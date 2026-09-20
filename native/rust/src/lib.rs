@@ -165,6 +165,7 @@ struct Gimp {
     gimp_context_set_foreground: unsafe extern "C" fn(Ptr) -> GBool,
     gimp_context_set_gradient_fg_bg_rgb: unsafe extern "C" fn() -> GBool,
     gimp_context_set_gradient_fg_transparent: unsafe extern "C" fn() -> GBool,
+    gimp_context_set_gradient_reverse: unsafe extern "C" fn(GBool) -> GBool,
     gimp_context_set_interpolation: unsafe extern "C" fn(c_int) -> GBool,
     gimp_drawable_edit_gradient_fill:
         unsafe extern "C" fn(Ptr, c_int, f64, GBool, c_int, f64, GBool, f64, f64, f64, f64) -> GBool,
@@ -281,6 +282,7 @@ fn open() -> Result<Gimp, String> {
         gimp_context_set_foreground: sym!(libs, "gimp_context_set_foreground"),
         gimp_context_set_gradient_fg_bg_rgb: sym!(libs, "gimp_context_set_gradient_fg_bg_rgb"),
         gimp_context_set_gradient_fg_transparent: sym!(libs, "gimp_context_set_gradient_fg_transparent"),
+        gimp_context_set_gradient_reverse: sym!(libs, "gimp_context_set_gradient_reverse"),
         gimp_context_set_interpolation: sym!(libs, "gimp_context_set_interpolation"),
         gimp_drawable_edit_gradient_fill: sym!(libs, "gimp_drawable_edit_gradient_fill"),
         _libs: libs,
@@ -927,10 +929,12 @@ pub unsafe extern "C" fn cljrs_init(registry: *mut Registry) {
             Ok::<bool, String>(ok)
         }
     }));
-    // (gradient-fill drawable kind "#from" "#to"|"transparent" x1 y1 x2 y2) -> bool.
+    // (gradient-fill drawable kind "#from"|"transparent" "#to"|"transparent" x1 y1 x2 y2) -> bool.
     // KIND is GimpGradientType (0 linear, 2 radial). The context is pushed and
     // popped, so the foreground, background and gradient do not leak into
-    // later commands.
+    // later commands. GIMP only has a foreground-to-transparent gradient, so a
+    // transparent FROM is that gradient on the TO colour, reversed: the
+    // endpoints stay where the caller put them, which matters for a radial.
     reg.define_in(ns, "gradient-fill", wrap_fn_variadic("gradient-fill", 8, |args: &[Value]| {
         let g = gimp()?;
         let drawable = item(g, long_arg(args, 0)?)?;
@@ -938,8 +942,14 @@ pub unsafe extern "C" fn cljrs_init(registry: *mut Registry) {
         let from = string_arg(args, 2)?;
         let to = string_arg(args, 3)?;
         let (x1, y1, x2, y2) = (f64_arg(args, 4)?, f64_arg(args, 5)?, f64_arg(args, 6)?, f64_arg(args, 7)?);
+        let reversed = from == "transparent";
+        if reversed && to == "transparent" {
+            return Err("a gradient needs one colour: both ends are transparent".to_string());
+        }
+        let fades = reversed || to == "transparent";
+        let (from, to) = if reversed { (to, "transparent".to_string()) } else { (from, to) };
         let from_spec = cstring(&from)?;
-        let to_spec = cstring(if to == "transparent" { "#000000" } else { &to })?;
+        let to_spec = cstring(if fades { "#000000" } else { &to })?;
         unsafe {
             let fg = (g.gegl_color_new)(from_spec.as_ptr());
             let bg = (g.gegl_color_new)(to_spec.as_ptr());
@@ -951,11 +961,12 @@ pub unsafe extern "C" fn cljrs_init(registry: *mut Registry) {
             (g.gimp_context_push)();
             let set = (g.gimp_context_set_foreground)(fg) != 0
                 && (g.gimp_context_set_background)(bg) != 0
-                && if to == "transparent" {
+                && if fades {
                     (g.gimp_context_set_gradient_fg_transparent)() != 0
                 } else {
                     (g.gimp_context_set_gradient_fg_bg_rgb)() != 0
-                };
+                }
+                && (g.gimp_context_set_gradient_reverse)(if reversed { 1 } else { 0 }) != 0;
             let ok = set && (g.gimp_drawable_edit_gradient_fill)(drawable, kind, 0.0, 0, 1, 0.0, 1, x1, y1, x2, y2) != 0;
             (g.gimp_context_pop)();
             (g.g_object_unref)(fg);

@@ -94,7 +94,7 @@
    data change and so the mapping can be asserted exhaustively."
   [reason]
   (get {:gimp/not-listening
-        "Open GIMP, then run Tools > MCP > Start MCP Server. If the menu is absent, the plugin is not installed."
+        "Open GIMP, then run Tools > MCP > Start MCP Server. If the menu is absent, the plugin is not installed. The native (clojurust) plug-in listens on 9878, not the default 9877: set HIVE_GIMP_PORT=9878 or connect with {:port 9878}."
 
         :gimp/connect-timeout
         "The host is reachable but the port is not answering. Check for a firewall or an ssh tunnel that died."

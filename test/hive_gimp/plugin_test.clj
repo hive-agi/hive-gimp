@@ -208,6 +208,17 @@
                (select-keys r ["from" "to" "color2" "gradient_type"])))
         (is (= {:gradient 2 :from "#b8f34a" :to "transparent" :line [540.0 600.0 1080.0 1920.0]} (:fill g)))
         (is (true? (:alpha? g))))
+      (testing "a transparent color1 fades color2 in, and the layer gains alpha the same way"
+        (ok "create_layer" {"name" "vignette" "fill" "white"})
+        (swap! (:state p) assoc-in [:layer (some #(when (= "vignette" (:name (layer %))) %)
+                                                 (get-in @(:state p) [:image 1 :layers])) :alpha?] false)
+        (ok "gradient_fill" {"color1" "transparent" "color2" "#000000" "gradient_type" "radial"
+                             "layer_name" "vignette"})
+        (let [g (first (filter #(= "vignette" (:name %)) (vals (:layer @(:state p)))))]
+          (is (= {:from "transparent" :to "#000000"} (select-keys (:fill g) [:from :to])))
+          (is (true? (:alpha? g)))))
+      (is (re-find #"both transparent"
+                   (get (run p "gradient_fill" {"color1" "transparent" "color2" "transparent"}) "error")))
       (is (re-find #"linear or radial" (get (run p "gradient_fill" {"gradient_type" "conical"}) "error"))))
     (testing "place_image: one dimension keeps the aspect ratio, then the anchor places the scaled box"
       ;; the fake loads every file as 64 x 32
