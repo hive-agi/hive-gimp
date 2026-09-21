@@ -114,6 +114,11 @@ reading. `dev/verify_live_gimp.clj` then drives a real GIMP 3.2.4, which is
 where the behavioural ones showed up: reading the source told us `new_canvas`
 opens a display, and only running it showed what happens when it cannot.
 
+Three of them are now compensated on this side of the boundary, in
+`hive-gimp.guard` (the verdicts) and `hive-gimp.client` (the round trips they
+need). `dev/verify_python_defects.clj` re-measures all three against a live
+headless GIMP, so the day the plug-in is fixed the probe says so.
+
 - **`call_api` is not dispatched by the plugin.** It falls through to the
   `else` branch and is executed as raw Python-Fu. The branch reads
   `j["params"]` unguarded, so a request without `params` raises `KeyError`
@@ -146,6 +151,14 @@ opens a display, and only running it showed what happens when it cannot.
   "failed" calls took `len(Gimp.get_images())` from 1 to 3, at exactly the
   requested dimensions. The same handler also hardcodes
   `"display_opened": True` in its success payload.
+
+  hive-gimp adopts that image instead of leaving it orphaned: `new_canvas`
+  counts the open images before and after, and when a failed call left exactly
+  one new image at the size that was asked for, the outcome is the success the
+  plug-in should have answered, carrying the image's id, `"recovered": true`
+  and an honest `"display_opened": false`. Two new images, or one of another
+  size, is an ambiguity, so the plug-in's error stands: handing back the wrong
+  image is worse than reporting the failure.
 - **`close_image` is dead code.** It calls `Gimp.get_displays()`, which the GIMP
   3.2 PyGObject API does not have, so every call fails on every image and
   nothing can close an image through this plugin. What works is reaching each
@@ -165,8 +178,33 @@ opens a display, and only running it showed what happens when it cannot.
 - **`add_text` substitutes a font and reports success.** `_resolve_font` walks
   aliases down to `Sans-serif` and then the first installed font. Measured
   against GIMP 3.2.4: `add_text` with `"Montserrat ExtraBold"` (not installed)
-  answered success and the layer's font read back `Sans-serif`. The native
-  plug-in's `place_text` and `add_text` refuse the name instead.
+  answered success and the layer's font read back `Sans-serif`. The response
+  never echoes the font, so the substitution cannot be seen from this side
+  after the fact. The native plug-in's `place_text` and `add_text` refuse the
+  name instead.
+
+  A font the caller NAMES is now checked before any text command is sent, and
+  a font GIMP does not have is refused with `:gimp/unknown-font` and the
+  nearest installed names. A font nobody named is not judged, because
+  `add_text` defaults to `Sans` and refusing the default would break every
+  call that simply left the font out. A lookup that cannot be made, which is
+  the native plug-in's case, lets the call through: "I could not look" is not
+  "it is not there", and that plug-in refuses an absent font itself.
+
+- **`list_fonts` truncates at 100 names and says nothing.** The plugin reads a
+  `limit` and defaults it to 100; the derived contract never declared the
+  parameter, so through hive-gimp the command could not see past the first
+  hundred fonts and reported a truncated list as the whole catalogue. A box
+  here has 2467. `commands_extra.edn` now declares `limit`, which matters
+  beyond the listing itself: the font check above uses this list as its
+  universe, and a universe capped at 100 would refuse fonts GIMP has.
+
+- **A native-only command dies as `KeyError: 'args'`.** `place_text` and
+  `place_image` are answered by the native plug-in only. Sent to the reference
+  one they reach the same undispatched `else` branch as `call_api`, and the
+  caller gets `:gimp/command-failed` with the message `'args'`, naming neither
+  the command nor the cause. hive-gimp reports `:gimp/native-only-command`
+  instead, and says which plug-in answers them.
 
 - **`check_server` and `restart_server` are handled by the plugin but were never
   exposed.** The Python server spends both names on host-side connection
@@ -237,8 +275,14 @@ clojure -M:test                                     # the suite (no Python neede
 clojure -M:test:nrepl --port 7920                   # interactive
 clojure -M:python -i dev/verify_python_transport.clj # live libpython-clj proof
 clojure -M -i dev/verify_live_gimp.clj              # live proof against real GIMP
+clojure -M -i dev/verify_python_defects.clj         # live proof of the three compensations
 python3 dev/extract_gimp_contract.py resources/hive_gimp/commands.edn
 ```
+
+`verify_python_defects.clj` wants a HEADLESS GIMP, because all three defects it
+measures only exist headless, and it wants one started without `-f`, because
+`-f` loads no fonts and a run with no fonts cannot tell a refusal earned by a
+missing font from one earned by an empty catalogue.
 
 `verify_live_gimp.clj` is the one place a double is not allowed: it drives a
 real GIMP over the real plugin socket. Bring one up first. No GUI click is

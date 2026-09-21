@@ -197,8 +197,14 @@
 ;; Is there a display? Decided by MEASUREMENT, not by reading DISPLAY out of an
 ;; environment, because what matters is whether GIMP can open one, and this
 ;; process is not GIMP. new_canvas is the probe: it is the cheapest command
-;; that must open a display, and its failure is exactly the thing the FINDINGS
-;; section reports. The probe cleans up after itself either way.
+;; that must open a display. The probe cleans up after itself either way.
+;;
+;; A SUCCESSFUL new_canvas no longer implies a display. hive-gimp adopts the
+;; image the plug-in builds and then disowns headless, so the command now
+;; succeeds either way and the two cases are told apart by `display_opened`,
+;; which the plug-in hardcodes true and the recovery sets false. Reading
+;; success as "there is a display" would run the whole DISPLAY suite against a
+;; headless GIMP and report its failures as defects of this library.
 
 (println)
 (purge-images! transport)
@@ -206,12 +212,15 @@
 (def display-probe
   (let [before (image-count transport)
         outcome (gimp/invoke transport "new_canvas" {:width 320 :height 240})
-        after (image-count transport)]
+        after (image-count transport)
+        value (when (gimp/ok? outcome) (gimp/value outcome))]
     {:outcome outcome
-     :display? (gimp/ok? outcome)
+     :display? (true? (get value "display_opened"))
+     :recovered? (true? (get value "recovered"))
      :leaked? (and (not (gimp/ok? outcome)) before after (> after before))
      :before before
      :after after}))
+
 
 (purge-images! transport)
 
@@ -309,19 +318,32 @@
 
 ;; _new_canvas builds the image and its layer, fills it, and only THEN calls
 ;; Gimp.Display.new(image), which returns NULL when GIMP runs headless. The
-;; blanket `except` turns that into {"status": "error"}, so the caller is told
-;; the command failed while a fully formed image is left inside GIMP with its
-;; id never returned. A false failure report AND a leak, on every headless call.
+;; blanket `except` turns that into {"status": "error"}, so the plug-in reports
+;; a failure for a fully formed image whose id it never returns: a false
+;; failure report AND an orphan, on every headless call.
+;;
+;; hive-gimp compensates, so what this prints is now the plug-in's behaviour
+;; SEEN THROUGH the recovery: `recovered` means the defect is still there and
+;; was caught. The day the plug-in opens no display and says so honestly, this
+;; line will say `succeeded` with display_opened false and no recovery.
 (finding! "new_canvas"
-          (if (:display? display-probe)
+          (cond
+            (:display? display-probe)
             (format "succeeded (a display exists); images %s -> %s"
                     (:before display-probe) (:after display-probe))
+
+            (:recovered? display-probe)
+            (format "reported failure headless; images %s -> %s, image adopted by hive-gimp"
+                    (:before display-probe) (:after display-probe))
+
+            :else
             (format "reported %s, images %s -> %s%s"
                     (:reason (:outcome display-probe))
                     (:before display-probe) (:after display-probe)
                     (if (:leaked? display-probe)
                       "  <- ORPHANED IMAGE LEAKED"
                       ""))))
+
 
 ;; close_image calls Gimp.get_displays(), which the GIMP 3.2 PyGObject API does
 ;; not have. Every call fails, so nothing can close an image through this
