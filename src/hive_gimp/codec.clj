@@ -23,7 +23,9 @@
    nothing (every plugin answer is an object) and removes the failure mode."
   (:require [clojure.data.json :as json]
             [hive-dsl.result :as r]
-            [hive-gimp.schema :as schema]))
+            [hive-gimp.schema :as schema])
+(:import [java.io PushbackReader]
+[java.io StringReader]))
 
 ;; Copyright (C) 2026 Pedro Gomes Branquinho (BuddhiLW) <pedrogbranquinho@gmail.com>
 ;;
@@ -54,13 +56,28 @@
 ;; Decode
 ;; =============================================================================
 
+(defn- only-json-whitespace-left?
+  "True when nothing but JSON whitespace (space, tab, LF, CR) remains in `r`."
+  [^PushbackReader r]
+  (loop []
+    (let [c (.read r)]
+      (cond
+        (= -1 c) true
+        (contains? #{32 9 10 13} c) (recur)
+        :else false))))
+
 (defn- parse
   "Parsed JSON value, or ::unparseable. Never throws: callers use this to ASK
    whether a buffer is complete, and an exception is the normal answer for
-   `not yet`."
+   `not yet`.
+
+   Exactly one value: anything but JSON whitespace after it is ::unparseable,
+   so an object followed by the head of the next one is never read as whole."
   [^String buffer]
   (try
-    (json/read-str buffer)
+    (let [r (PushbackReader. (StringReader. buffer) 64)
+          v (json/read r)]
+      (if (only-json-whitespace-left? r) v ::unparseable))
     (catch Exception _ ::unparseable)))
 
 (defn complete-frame?

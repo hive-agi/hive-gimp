@@ -41,6 +41,18 @@
     (is (false? (codec/complete-frame? "")))
     (is (false? (codec/complete-frame? nil)))))
 
+(deftest complete-frame-refuses-trailing-input
+  (testing "an object followed by the head of another is not one whole frame"
+    (is (false? (codec/complete-frame? "{\"status\":\"success\"}{\"sta")))
+    (is (false? (codec/complete-frame? "{\"status\":\"success\"}{}")))
+    (is (false? (codec/complete-frame? "{\"status\":\"success\"} x"))))
+  (testing "JSON whitespace around the object is still a frame"
+    (is (true? (codec/complete-frame? "{\"status\":\"success\"}\n")))
+    (is (true? (codec/complete-frame? " \t{\"status\":\"success\"}\r\n"))))
+  (testing "decode refuses the same buffers"
+    (is (= :gimp/unparseable-response
+           (:error (codec/decode "{\"status\":\"success\"}{\"sta"))))))
+
 (deftest complete-frame-is-false-for-every-proper-prefix
   (testing "a partially received object never reads as complete"
     (let [whole (json/write-str {"status" "success"

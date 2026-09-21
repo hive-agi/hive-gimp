@@ -366,9 +366,10 @@ differences are deliberate, and `documented-divergences-test` pins each one:
 | integer past the long range | `BigInt` | double |
 | non-ASCII on write | `\uXXXX` escape | raw UTF-8 |
 
-The first row also affects `codec`. `codec/complete-frame?` answers true for an
-object followed by the start of a second one. `wire/complete-frame?` answers
-false.
+The first row is a difference from `read-str` only, not from `codec`: `codec`
+reads through a reader and refuses anything but JSON whitespace after the
+value, so both `codec/complete-frame?` and `wire/complete-frame?` answer false
+for an object followed by the start of a second one.
 
 The codec's shape comes from three clojurust behaviours the gate caught in the
 first draft (release binary built 2026-09-10):

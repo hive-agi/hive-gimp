@@ -233,9 +233,11 @@
     (is (= {:error "trailing input" :at 3} (wire/parse "{} x")))
     (is (= {:error :trailing} (strict-oracle "{} x")) "the strict oracle agrees with wire"))
 
-  (testing "one consequence, in codec: an object followed by more text reads as a whole frame"
-    (is (true? (codec/complete-frame? "{\"status\":\"success\"}{\"sta")))
-    (is (false? (wire/complete-frame? "{\"status\":\"success\"}{\"sta"))))
+  (testing "codec and wire agree on it: an object followed by more text is not a whole frame"
+    (is (false? (codec/complete-frame? "{\"status\":\"success\"}{\"sta")))
+    (is (false? (wire/complete-frame? "{\"status\":\"success\"}{\"sta")))
+    (is (= (:error (codec/decode "{\"status\":\"success\"} x"))
+           (:error (wire/decode-response "{\"status\":\"success\"} x")))))
 
   (testing "a lone surrogate escape: data.json accepts it, wire refuses it"
     (is (lone-surrogate? (json/read-str "\"\\ud83d\"")))
