@@ -68,7 +68,8 @@ catalog         COLLECT   reads the contract off the classpath, nothing else
 contract        PROMOTE   the descriptor algebra, pure
 command         PROMOTE   descriptor + args -> GimpCommand, pure
 response        PROMOTE   raw plugin answer -> Outcome, pure
-codec           PROMOTE   framing and JSON, pure
+codec           PROMOTE   framing and JSON, pure (JVM, clojure.data.json)
+wire            PROMOTE   the same protocol, portable (JVM, cljw, cljrs)
 doctor.verdict  PROMOTE   the doctor's judgements, pure
 client          PIPELINE  lookup, build, encode, send, decode, interpret
 doctor          PIPELINE  staged preflight
@@ -326,6 +327,63 @@ inside one; `true?`/`false?`/`identical?` answer wrongly on clojurust once a fn
 is hot; and GEGL paints an unknown colour name transparent cyan and reads
 `rgb()` channels as 0..1, both while reporting success, which the Python
 reference plug-in passes straight through.
+
+## The portable wire codec: `hive-gimp.wire`
+
+`hive-gimp.codec` speaks the plug-in protocol on the JVM through
+`clojure.data.json`. `hive-gimp.wire` speaks the same protocol in plain Clojure
+over strings, for hosts with no JSON library: ClojureWasm (`cljw`) and
+clojurust (`cljrs`). It has five functions: `parse`, `emit`, `complete-frame?`,
+`encode-request` and `decode-response`. It depends on `clojure.string` and
+`hive-gimp.shape` only, and `decode-response` builds its hive-dsl Result as a
+plain map, so hive-dsl does not need to be present on the host.
+
+It is checked in two places:
+
+```bash
+# JVM: a differential test against clojure.data.json as the oracle
+clojure -M:test --focus hive-gimp.wire-test
+
+# every host: the same spelled-out checks, 60 passes each
+clojure -M dev/wire_portability.cljc
+cljw -cp src dev/wire_portability.cljc
+cljrs run --src-path src dev/wire_portability.cljc
+```
+
+The oracle test checks both directions: data.json writes and wire reads, then
+wire writes and data.json reads. It also damages valid JSON text (truncates it,
+deletes one char, or inserts one char) and requires both parsers to reach the
+same verdict. data.json's `read-str` ignores trailing input, so the oracle
+first reads through a reader and refuses anything left over. The remaining
+differences are deliberate, and `documented-divergences-test` pins each one:
+
+| input | clojure.data.json | wire |
+|---|---|---|
+| text after the value (`{} x`) | ignored | refused |
+| lone surrogate escape (`"\ud83d"`) | accepted | refused |
+| raw control char in a string | accepted | refused (RFC 8259 §7) |
+| sign inside `\u` (`"\u-000"`) | accepted (`Integer/parseInt`) | refused |
+| integer past the long range | `BigInt` | double |
+| non-ASCII on write | `\uXXXX` escape | raw UTF-8 |
+
+The first row also affects `codec`. `codec/complete-frame?` answers true for an
+object followed by the start of a second one. `wire/complete-frame?` answers
+false.
+
+The codec's shape comes from three clojurust behaviours the gate caught in the
+first draft (release binary built 2026-09-10):
+
+- `clojure.string/index-of` returns a UTF-8 **byte** offset, while `subs` and
+  `count` work in chars. This happens in every tier, including the interpreter.
+- Once a fn is JIT-compiled (after 1000 calls), `subs` indexing on a non-ASCII
+  string went out of range at an index the interpreter accepted.
+- Inside a JIT-compiled fn, an exception thrown by a callee disappeared and the
+  call returned nil.
+
+So `parse` never calls `index-of` on its input. It splits the input once into a
+vector of one-char strings, and each reader returns failure as a value instead
+of throwing. The last two behaviours are JIT-only: with `--jit-threshold 0`, the
+draft that still used `subs` and exceptions passes.
 
 ## A note on Basilisp
 

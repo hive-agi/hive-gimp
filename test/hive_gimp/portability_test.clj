@@ -14,11 +14,9 @@
    host-specific thing pushed out to a boundary. hive-creator and
    hive-kdenlive carry the same test over their own cores.
 
-   The remaining work is in docs/portable-core.md: `command` and `response`
-   still require `hive-gimp.schema` for one shape gate each, and `codec`
-   requires clojure.data.json. `hive-gimp.shape` now carries portable
-   predicates equivalent to the malli ones (proved in
-   hive-gimp.shape-equivalence-test), which is what those two need."
+   `codec` stays JVM on clojure.data.json; `wire` is its portable twin, held
+   to it by hive-gimp.wire-test and run on cljw and cljrs by
+   dev/wire_portability.cljc."
   (:require [clojure.java.io :as io]
             [clojure.string :as str]
             [clojure.test :refer [deftest is testing]]
@@ -59,7 +57,8 @@
                "ports.cljc"     ; the seams
                "verdict.cljc"   ; the doctor's judgements
                "command.cljc"   ; descriptor + args -> GimpCommand
-               "response.cljc"] ; raw answer -> Outcome
+               "response.cljc"  ; raw answer -> Outcome
+               "wire.cljc"]     ; JSON + framing, for hosts without a JSON library
             ]
       (is (contains? names n) (str n " left the portable core")))
     (testing "the command vocabulary is the point: building a GIMP script and
