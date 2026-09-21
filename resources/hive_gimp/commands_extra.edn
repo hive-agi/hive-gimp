@@ -20,6 +20,22 @@
   :doc     "Make the GIMP plugin drop and re-bind its listening socket in place. Use when the port is held but no longer answering; it does not restart GIMP and does not touch open images."
   :params  []}
 
+ ;; A REPLACEMENT for the derived list_fonts row, which wins the tie in
+ ;; contract/prefer by declaring more parameters. The plugin reads a `limit` and
+ ;; defaults it to 100, so the derived descriptor, which does not declare one,
+ ;; can never see past the first hundred fonts and reports a truncated
+ ;; catalogue as the whole of it. hive-gimp.client checks a caller's font
+ ;; against this list before a text command is sent, and a universe that stops
+ ;; at 100 names would refuse fonts GIMP actually has.
+
+ {:command "list_fonts"
+  :tool    "gimp_list_fonts"
+  :doc     "List the fonts installed in GIMP, by exact name. `filter` narrows server-side; `limit` caps the answer and defaults to 100 in the plugin, so pass a large one to enumerate everything."
+  :params  [
+            {:name "filter" :wire "filter" :schema :string :nilable? true :default nil :doc "Optional pattern to narrow the font names"}
+            {:name "limit" :wire "limit" :schema :long :default 100 :doc "Maximum number of names to return (the plugin truncates silently at this count)"}
+           ]}
+
  ;; Composition commands answered by the native plug-in (native/), not by the
  ;; reference Python plug-in. They exist for layout work where the reference
  ;; add_text falls short: it has no anchor, so centring needs a second call, and
