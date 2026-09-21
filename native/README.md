@@ -49,6 +49,13 @@ wrapper it needs in `lib.rs` and the `gimp` port map in `main.cljrs`
     ./install.sh                        # launcher into ~/.config/GIMP/3.2/plug-ins
     ../dev/verify_native_plugin.sh      # live gate against a real headless GIMP
 
+`install.sh` bakes two absolute paths into the launcher: the cljrs binary
+(`CLJRS=...`, default `/home/leibniz/PP/clojurust/target/debug/cljrs`) and this
+checkout's cdylib. It REFUSES to install when either is missing, and the
+launcher it writes refuses to start for the same reason, naming the path and
+the fix on stderr. Both refusals exist because GIMP reports an exec of a
+missing file as nothing more than "Plug-in crashed".
+
 Host smoke without GIMP:
 
     cljrs run src/hive_gimp/plugin/smoke.cljrs -- 9879
