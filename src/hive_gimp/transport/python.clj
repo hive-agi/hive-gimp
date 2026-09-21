@@ -296,65 +296,57 @@ or add clj-python/libpython-clj {:mvn/version \"2.026\"} to your deps."
       (finally
         (try (call-attr sock "close") (catch Exception _ nil))))))
 
-(def pixel-source
-  "Host-side pixel operations, as a real Python module.
+;; =============================================================================
+;; Host-side pixel operations, through interop
+;; =============================================================================
 
-   Installed into `sys.modules` as `hive_gimp_pixel` so it is reachable through
-   the ordinary `IHostPython/call-python` path: `hive-gimp.pixel` then depends
-   on the PORT and never on this namespace.
-
-   Written as Python rather than driven attribute-by-attribute from Clojure
-   because these operations pass BYTES. Reading a file into a Python bytes
-   object, handing it to rembg and writing the result back are three steps that
-   belong on one side of the bridge; marshalling the buffer across it twice
-   would be slower and would convert a segmentation mask into a JVM array for
-   no reason."
-  "
-def image_info(path):
-    from PIL import Image
-    with Image.open(path) as im:
-        return {'width': im.width, 'height': im.height,
-                'mode': im.mode, 'format': im.format}
-
-def remove_background(in_path, out_path):
-    from rembg import remove
-    with open(in_path, 'rb') as f:
-        data = f.read()
-    out = remove(data)
-    with open(out_path, 'wb') as f:
-        f.write(out)
-    return {'input': in_path, 'output': out_path, 'bytes': len(out)}
-")
-
-(defonce ^:private embedded-modules-installed? (atom false))
-
-(defn- install-module!
-  "Exec `source` into a fresh module object and register it in `sys.modules`.
-
-   A real module rather than a bare dict, so `import-module` finds it and the
-   functions inside it can use ordinary imports and closures."
-  [module-name source]
+(defn- image-info
+  "PIL's reading of the image file at `path`:
+   {\"width\" int \"height\" int \"mode\" str \"format\" str-or-nil}."
+  [path]
   (let [import-module (py-var 'libpython-clj2.python/import-module)
         get-attr      (py-var 'libpython-clj2.python/get-attr)
         call-attr     (py-var 'libpython-clj2.python/call-attr)
+        ->jvm         (py-var 'libpython-clj2.python/->jvm)
+        im            (call-attr (import-module "PIL.Image") "open" path)
+        attr          #(->jvm (get-attr im %))]
+    (try
+      {"width"  (attr "width")
+       "height" (attr "height")
+       "mode"   (attr "mode")
+       "format" (attr "format")}
+      (finally (call-attr im "close")))))
+
+(defn- remove-background
+  "rembg over the file at `in-path`, written to `out-path`:
+   {\"input\" in-path \"output\" out-path \"bytes\" written}.
+
+   The image bytes stay Python objects from `read` to `write`; only the
+   written length crosses into the JVM."
+  [in-path out-path]
+  (let [import-module (py-var 'libpython-clj2.python/import-module)
+        call-attr     (py-var 'libpython-clj2.python/call-attr)
+        ->jvm         (py-var 'libpython-clj2.python/->jvm)
         builtins      (import-module "builtins")
-        types         (import-module "types")
-        sys           (import-module "sys")
-        module        (call-attr types "ModuleType" module-name)]
-    (call-attr builtins "exec" source (get-attr module "__dict__"))
-    (call-attr (get-attr sys "modules") "__setitem__" module-name module)
-    module))
+        rembg         (import-module "rembg")
+        with-file     (fn [path mode f]
+                        (let [handle (call-attr builtins "open" path mode)]
+                          (try (f handle) (finally (call-attr handle "close")))))
+        data          (with-file in-path "rb" #(call-attr % "read"))
+        out           (call-attr rembg "remove" data)]
+    (with-file out-path "wb" #(call-attr % "write" out))
+    {"input"  in-path
+     "output" out-path
+     "bytes"  (->jvm (call-attr builtins "len" out))}))
 
-(defn ensure-embedded-modules!
-  "Install this library's own Python modules. Idempotent.
-
-   Called on the `call-python` path so a caller never has to know these exist;
-   the port is the whole interface."
-  []
-  (when-not @embedded-modules-installed?
-    (install-module! "hive_gimp_pixel" pixel-source)
-    (reset! embedded-modules-installed? true))
-  true)
+(def embedded-modules
+  "This library's own host-side Python operations, by module and attribute
+   name, as Clojure fns that drive Python through interop. `call-python`
+   answers a [module attr] found here without importing anything named
+   `module`, so `hive-gimp.pixel` reaches them through the port like any other
+   Python call. Args are positional; kwargs are refused."
+  {"hive_gimp_pixel" {"image_info"        #'image-info
+                      "remove_background" #'remove-background}})
 
 ;; =============================================================================
 ;; PythonTransport
@@ -426,15 +418,16 @@ def remove_background(in_path, out_path):
       (when-not (= :python/available status)
         (throw (ex-info (str "Host-side Python is unavailable: " (name status))
                         {:hive-gimp/reason status :hint hint})))
-      ;; This library's own Python modules are installed here rather than by
-      ;; the caller, so `hive-gimp.pixel` reaches them through the port like any
-      ;; other module and never requires this namespace.
-      (ensure-embedded-modules!)
-      (let [import-module (py-var 'libpython-clj2.python/import-module)
-            call-attr-kw  (py-var 'libpython-clj2.python/call-attr-kw)
-            ->jvm         (py-var 'libpython-clj2.python/->jvm)
-            m             (import-module module)]
-        (->jvm (call-attr-kw m attr (vec args) (or kwargs {})))))))
+      (if-let [op (get-in embedded-modules [module attr])]
+        (if (seq kwargs)
+          (throw (ex-info (str module "." attr " takes positional arguments only")
+                          {:hive-gimp/reason :python/bad-arguments :kwargs kwargs}))
+          (apply op args))
+        (let [import-module (py-var 'libpython-clj2.python/import-module)
+              call-attr-kw  (py-var 'libpython-clj2.python/call-attr-kw)
+              ->jvm         (py-var 'libpython-clj2.python/->jvm)
+              m             (import-module module)]
+          (->jvm (call-attr-kw m attr (vec args) (or kwargs {}))))))))
 
 (defn host-python
   "An `IHostPython` bound to `python-executable` (nil to autodetect)."
