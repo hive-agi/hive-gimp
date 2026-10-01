@@ -226,10 +226,15 @@
    (str "Diagnose the GIMP connection: is the contract loaded, is the plugin listening and answering, "
         "is GIMP a version this contract supports, and is the optional host-side Python available. "
         "Run this when a gimp call fails for a reason that does not name a parameter.")
-   :inputSchema {:type "object" :additionalProperties false :properties {}}
+   :inputSchema {:type "object" :additionalProperties false
+                 :properties {"host_python" {:type        "boolean"
+                                              :description "Also check the optional host-side Python. Default true."}}}
    :annotations {:readOnlyHint true :destructiveHint false
                  :idempotentHint true :openWorldHint true}
-   :handler (fn [_] (text (doctor/report {:transport transport :host-python host-python})))})
+   :handler (fn [params]
+              (text (doctor/report {:transport   transport
+                                    :host-python (when-not (false? (get (str-keys params) "host_python"))
+                                                   host-python)})))})
 
 (defn pixel-handler
   [transport host-python params]
