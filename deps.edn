@@ -10,7 +10,7 @@
   ;; contract lib rather than on a host namespace is what lets any host, hive-mcp
   ;; or not, mount this jar. Requiring hive-mcp here would be the axiom violation
   ;; that makes the published artifact unloadable from a maven fetch.
-  io.github.hive-agi/hive-addon   {:mvn/version "1.1.0"}
+  io.github.hive-agi/hive-addon   {:mvn/version "1.1.2"}
 
   ;; hive-spi: pure SPI contract leaf (protocols, schema registry, generators).
   io.github.hive-agi/hive-spi     {:mvn/version "1.4.2"}
@@ -34,7 +34,7 @@
 
  :aliases
  {;; clojure -T:build <task> -- canonical hive build (jar / install / bump / deploy).
-  :build {:deps {io.github.hive-agi/hive-build {:mvn/version "0.1.27"}}
+  :build {:deps {io.github.hive-agi/hive-build {:mvn/version "0.1.28"}}
           :ns-default hive-build.api}
 
   ;; The libpython-clj transport is OPTIONAL and lives behind this alias.
