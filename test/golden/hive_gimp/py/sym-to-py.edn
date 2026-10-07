@@ -1,0 +1,5 @@
+{:class-constant "Gimp.ChannelOps.REPLACE",
+ :dotted "a.b_c",
+ :kebab "get_images",
+ :plain "a",
+ :qualified "Gimp.get_images"}
