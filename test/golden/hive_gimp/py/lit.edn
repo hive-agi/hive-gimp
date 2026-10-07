@@ -1,0 +1,6 @@
+{:keyword [true :a/b],
+ :map [true {"a" [true]}],
+ :nil [true nil],
+ :set [true #{1}],
+ :string [true "s/t"],
+ :vector [true [1 2.5]]}

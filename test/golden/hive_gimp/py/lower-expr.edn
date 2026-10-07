@@ -1,0 +1,170 @@
+{:access
+ {:py/node :list,
+  :items
+  [{:py/node :call,
+    :fn
+    {:py/node :attr, :object {:py/node :name, :id "d"}, :attr "get"},
+    :args
+    [{:py/node :literal, :value :k} {:py/node :literal, :value nil}],
+    :kwargs []}
+   {:py/node :subscript,
+    :object {:py/node :name, :id "xs"},
+    :index {:py/node :literal, :value 1}}
+   {:py/node :subscript,
+    :object
+    {:py/node :subscript,
+     :object {:py/node :name, :id "d"},
+     :index {:py/node :literal, :value "a"}},
+    :index {:py/node :literal, :value 0}}
+   {:py/node :subscript,
+    :object {:py/node :name, :id "xs"},
+    :index {:py/node :literal, :value -1}}
+   {:py/node :slice,
+    :object {:py/node :name, :id "xs"},
+    :lower {:py/node :literal, :value 1},
+    :upper nil}]},
+ :attribute
+ {:py/node :attr, :object {:py/node :name, :id "h"}, :attr "count"},
+ :call-kwargs
+ {:py/node :call,
+  :fn {:py/node :name, :id "f"},
+  :args [{:py/node :name, :id "a"} {:py/node :literal, :value 1}],
+  :kwargs [["fill_type" {:py/node :literal, :value 2}]]},
+ :chain
+ {:py/node :call,
+  :fn
+  {:py/node :attr,
+   :object
+   {:py/node :call,
+    :fn
+    {:py/node :attr,
+     :object
+     {:py/node :subscript,
+      :object
+      {:py/node :call,
+       :fn
+       {:py/node :attr,
+        :object {:py/node :name, :id "img"},
+        :attr "get_layers"},
+       :args [],
+       :kwargs []},
+      :index {:py/node :literal, :value 0}},
+     :attr "get_name"},
+    :args [],
+    :kwargs []},
+   :attr "upper"},
+  :args [],
+  :kwargs []},
+ :collections
+ {:py/node :list,
+  :items
+  [{:py/node :literal, :value 1}
+   {:py/node :dict,
+    :entries
+    [[{:py/node :literal, :value :a} {:py/node :name, :id "b"}]]}
+   {:py/node :set, :items [{:py/node :name, :id "c"}]}]},
+ :comp
+ {:py/node :comp,
+  :element
+  {:py/node :binop,
+   :op "**",
+   :operands
+   [{:py/node :name, :id "x"} {:py/node :literal, :value 2}]},
+  :clauses
+  [{:for {:py/node :name, :id "x"},
+    :in
+    {:py/node :call,
+     :fn {:py/node :name, :id "range"},
+     :args [{:py/node :literal, :value 5}],
+     :kwargs []}}
+   {:if
+    {:py/node :binop,
+     :op "==",
+     :operands
+     [{:py/node :binop,
+       :op "%",
+       :operands
+       [{:py/node :name, :id "x"} {:py/node :literal, :value 2}]}
+      {:py/node :literal, :value 0}]}}]},
+ :cond-expr
+ {:py/node :cond-expr,
+  :test {:py/node :name, :id "a"},
+  :then {:py/node :name, :id "b"},
+  :else {:py/node :literal, :value nil}},
+ :constructor
+ {:py/node :call,
+  :fn {:py/node :name, :id "Gegl.Color"},
+  :args [{:py/node :literal, :value "#1a20cf"}],
+  :kwargs []},
+ :helpers
+ {:py/node :list,
+  :items
+  [{:py/node :call,
+    :fn {:py/node :name, :id "len"},
+    :args [{:py/node :name, :id "xs"}],
+    :kwargs []}
+   {:py/node :binop,
+    :op "-",
+    :operands
+    [{:py/node :name, :id "a"} {:py/node :literal, :value 1}]}
+   {:py/node :call,
+    :fn
+    {:py/node :attr,
+     :object {:py/node :literal, :value ""},
+     :attr "join"},
+    :args
+    [{:py/node :call,
+      :fn {:py/node :name, :id "map"},
+      :args
+      [{:py/node :name, :id "str"}
+       {:py/node :list,
+        :items
+        [{:py/node :name, :id "a"} {:py/node :literal, :value 1}]}],
+      :kwargs []}],
+    :kwargs []}
+   {:py/node :tuple, :items [{:py/node :literal, :value 1}]}
+   {:py/node :raw, :code "x.y"}]},
+ :infix
+ {:py/node :binop,
+  :op "*",
+  :operands
+  [{:py/node :binop,
+    :op "+",
+    :operands
+    [{:py/node :name, :id "a"} {:py/node :literal, :value 1}]}
+   {:py/node :unop, :op "-", :operand {:py/node :name, :id "b"}}
+   {:py/node :binop,
+    :op "%",
+    :operands
+    [{:py/node :name, :id "c"} {:py/node :literal, :value 2}]}]},
+ :lambda
+ {:py/node :lambda,
+  :params {:fixed ["a"], :rest "r"},
+  :body
+  {:py/node :binop,
+   :op "+",
+   :operands
+   [{:py/node :name, :id "a"} {:py/node :literal, :value 1}]}},
+ :literal {:py/node :literal, :value {"a" [1 nil]}},
+ :logic
+ {:py/node :binop,
+  :op "and",
+  :operands
+  [{:py/node :binop,
+    :op "==",
+    :operands [{:py/node :name, :id "a"} {:py/node :name, :id "b"}]}
+   {:py/node :unop, :op "not", :operand {:py/node :name, :id "c"}}
+   {:py/node :binop,
+    :op "in",
+    :operands
+    [{:py/node :name, :id "x"} {:py/node :name, :id "xs"}]}]},
+ :method
+ {:py/node :call,
+  :fn
+  {:py/node :attr,
+   :object {:py/node :name, :id "img"},
+   :attr "select_ellipse"},
+  :args
+  [{:py/node :name, :id "REPLACE"} {:py/node :literal, :value 10}],
+  :kwargs [["w" {:py/node :literal, :value 32}]]},
+ :name {:py/node :name, :id "Gimp.get_images"}}
