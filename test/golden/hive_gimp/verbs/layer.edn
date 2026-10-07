@@ -1,0 +1,29 @@
+{:get-by-id "Gimp.Layer.get_by_id(12)",
+ :get-offsets
+ "hg_offsets = bg.get_offsets()\n{\"x\": hg_offsets[1], \"y\": hg_offsets[2]}",
+ :insert
+ "Gimp.Image.get_by_id(1).insert_layer(Gimp.Item.get_by_id(12), None, 0)\nGimp.Item.get_by_id(12)",
+ :insert-placed
+ "Gimp.Image.get_by_id(1).insert_layer(bg, Gimp.Item.get_by_id(30), 3)\nbg",
+ :new-group
+ "hg_group = Gimp.GroupLayer.new(Gimp.Image.get_by_id(1), \"logo v3\")\nGimp.Image.get_by_id(1).insert_layer(hg_group, None, 0)\nhg_group",
+ :new-group-nested
+ "words = Gimp.GroupLayer.new(Gimp.Image.get_by_id(1), \"texto\")\nGimp.Image.get_by_id(1).insert_layer(words, Gimp.Item.get_by_id(30), 1)\nwords",
+ :new-layer
+ "hg_layer = Gimp.Layer.new(Gimp.Image.get_by_id(1), \"corpo v3\", Gimp.Image.get_by_id(1).get_width(), Gimp.Image.get_by_id(1).get_height(), Gimp.ImageType.RGBA_IMAGE, 100.0, Gimp.LayerMode.NORMAL)\nGimp.Image.get_by_id(1).insert_layer(hg_layer, None, 0)\nhg_layer",
+ :new-layer-bound
+ "bg = Gimp.Layer.new(scratch, \"fundo\", scratch.get_width(), scratch.get_height(), Gimp.ImageType.RGBA_IMAGE, 100.0, Gimp.LayerMode.NORMAL)\nscratch.insert_layer(bg, grp, 0)\nbg",
+ :new-layer-full
+ "star = Gimp.Layer.new(Gimp.Image.get_by_id(1), \"estrela\", 64, 32, Gimp.ImageType.GRAYA_IMAGE, 40.0, Gimp.LayerMode.NORMAL)\nGimp.Image.get_by_id(1).insert_layer(star, Gimp.Item.get_by_id(30), 2)\nstar",
+ :set-name
+ "Gimp.Item.get_by_id(12).set_name(\"corpo azul (old)\")\nGimp.Item.get_by_id(12)",
+ :set-offsets
+ "Gimp.Item.get_by_id(12).set_offsets(-4, 9)\nGimp.Item.get_by_id(12)",
+ :set-opacity
+ "Gimp.Item.get_by_id(12).set_opacity(55.0)\nGimp.Item.get_by_id(12)",
+ :set-visible
+ "Gimp.Item.get_by_id(12).set_visible(False)\nGimp.Item.get_by_id(12)",
+ :supersede
+ "hg_layer = Gimp.Layer.new(Gimp.Image.get_by_id(1), \"corpo azul v2\", Gimp.Image.get_by_id(1).get_width(), Gimp.Image.get_by_id(1).get_height(), Gimp.ImageType.RGBA_IMAGE, 100.0, Gimp.LayerMode.NORMAL)\nGimp.Image.get_by_id(1).insert_layer(hg_layer, Gimp.Item.get_by_id(12).get_parent(), Gimp.Image.get_by_id(1).get_item_position(Gimp.Item.get_by_id(12)))\nhg_layer\nGimp.Item.get_by_id(12).set_visible(False)\nhg_layer",
+ :supersede-as
+ "retry = Gimp.Layer.new(Gimp.Image.get_by_id(1), \"retry\", Gimp.Image.get_by_id(1).get_width(), Gimp.Image.get_by_id(1).get_height(), Gimp.ImageType.RGBA_IMAGE, 80.0, Gimp.LayerMode.NORMAL)\nGimp.Image.get_by_id(1).insert_layer(retry, old.get_parent(), Gimp.Image.get_by_id(1).get_item_position(old))\nretry\nold.set_visible(False)\nretry"}

@@ -1,0 +1,2 @@
+{:display-new "Gimp.Display.new(Gimp.Image.get_by_id(1))",
+ :displays-flush "Gimp.displays_flush()"}
