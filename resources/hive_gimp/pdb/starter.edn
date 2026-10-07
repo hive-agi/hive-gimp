@@ -25,6 +25,10 @@
    {:name "file", :kind :file, :doc "The file to export to", :required? true}
    {:name "interlaced", :kind :boolean, :doc "Use Adam7 interlacing", :default false}
    {:name "compression", :kind :int, :doc "Deflate Compression factor (0..9) (0..9)", :default 9}
+   {:name "bkgd", :kind :boolean, :doc "Write bKGD chunk (PNG metadata)", :default true}
+   {:name "offs", :kind :boolean, :doc "Write oFFs chunk (PNG metadata)", :default false}
+   {:name "phys", :kind :boolean, :doc "Write pHYs chunk (PNG metadata)", :default true}
+   {:name "time", :kind :boolean, :doc "Write tIME chunk (PNG metadata)", :default true}
    {:name "save-transparent",
     :kind :boolean,
     :doc "Preserve color of completely transparent pixels",
@@ -34,6 +38,27 @@
     :doc
     "When checked, save as 1, 2, 4, or 8-bit depending on number of colors used. When unchecked, always save as 8-bit",
     :default false}
-   {:name "format", :kind :string, :doc "PNG export format", :default "auto"}],
+   {:name "format", :kind :string, :doc "PNG export format", :default "auto"}
+   {:name "include-exif",
+    :kind :boolean,
+    :doc "Save Exif (Exchangeable image file format) metadata",
+    :default false}
+   {:name "include-iptc",
+    :kind :boolean,
+    :doc "Save IPTC (International Press Telecommunications Council) metadata",
+    :default false}
+   {:name "include-xmp",
+    :kind :boolean,
+    :doc "Save XMP (Extensible Metadata Platform) metadata",
+    :default false}
+   {:name "include-color-profile",
+    :kind :boolean,
+    :doc "Save the ICC color profile as metadata",
+    :default false}
+   {:name "include-thumbnail",
+    :kind :boolean,
+    :doc "Save a smaller representation of the image as metadata",
+    :default true}
+   {:name "include-comment", :kind :boolean, :doc "Save a comment as metadata", :default false}],
   :omitted [{:name "options", :type "GimpExportOptions"}],
   :fn export-png}]
