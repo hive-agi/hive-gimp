@@ -1,0 +1,23 @@
+{:flatpak
+ ["flatpak"
+  "run"
+  "--die-with-parent"
+  "org.gimp.GIMP"
+  "-n"
+  "-i"
+  "-d"
+  "-f"
+  "--batch-interpreter"
+  "python-fu-eval"
+  "-b"
+  "proc.run(cfg)"],
+ :native
+ ["gimp-3.2"
+  "-n"
+  "-i"
+  "-d"
+  "-f"
+  "--batch-interpreter"
+  "python-fu-eval"
+  "-b"
+  "x = 1"]}

@@ -291,6 +291,52 @@ mkdir -p "$DEST" && cp gimp-mcp-plugin.py "$DEST/" && chmod +x "$DEST"/*.py
 The directory and the file must share a name (`gimp-mcp-plugin/gimp-mcp-plugin.py`)
 and the file must be executable, or GIMP 3 skips it without a word.
 
+### Keeping the server up without a human
+
+A PDB calling error kills the plug-in process while GIMP's window stays up, and
+nothing restarts it. `heal!` does, with no click:
+
+```clojure
+(def g (gimp/connect))
+(gimp/status g)   ;=> {:observed {...} :state :link/dead-in-gui}
+(gimp/heal! g)    ;=> {:outcome :healed :state :link/answering :rounds [...]}
+```
+
+The MCP tool `gimp_lifecycle` (`action` = `status` | `heal`) does the same.
+What `heal!` does depends on what it observes, and it escalates when a remedy
+does not take:
+
+| state | remedy |
+|---|---|
+| answering | nothing |
+| wedged (listening, not answering) | `restart_server`; then stop the process holding the port |
+| dead in a GUI GIMP | relaunch `plug-in-mcp-server` inside it over D-Bus |
+| no GIMP at all | launch a headless GIMP that hive-gimp owns |
+
+The GUI relaunch uses GIMP 3's own session-bus service: GIMP owns
+`org.gimp.GIMP.UI` and exports `BatchRun(interpreter, command)`, the method
+`gimp -b` uses to hand a batch to an instance that is already open. There is
+nothing to install in GIMP and no restart. The equivalent by hand is:
+
+```bash
+gdbus call --session --dest org.gimp.GIMP.UI --object-path /org/gimp/GIMP/UI \
+  --method org.gimp.GIMP.UI.BatchRun python-fu-eval \
+  'from gi.repository import Gimp
+proc = Gimp.get_pdb().lookup_procedure("plug-in-mcp-server")
+cfg = proc.create_config()
+cfg.set_property("run-mode", Gimp.RunMode.NONINTERACTIVE)
+proc.run(cfg)'
+```
+
+The headless GIMP runs as `flatpak run --die-with-parent org.gimp.GIMP -n -i -d -f
+--batch-interpreter python-fu-eval -b <that source>` (pass `:gimp-argv` for a
+native install). It logs to `$TMPDIR/hive-gimp-headless.log` and dies with the
+JVM that launched it. `--die-with-parent` is required: without it, stopping
+`flatpak run` leaves the sandboxed GIMP orphaned and still serving the port.
+
+Live proof: `dev/heal_live.clj` kills the plug-in, heals, then `py/eval!`s an
+image's `[w h]`.
+
 ## Configuration
 
 Every field has a working default; a stock install needs none.

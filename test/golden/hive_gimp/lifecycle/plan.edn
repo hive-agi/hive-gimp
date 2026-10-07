@@ -1,0 +1,100 @@
+{:absent-after-one
+ #:plan{:state :link/absent,
+        :verdict :heal,
+        :steps
+        [#:step{:kind :launch-headless}
+         #:step{:kind :await-answer, :timeout-ms 60000, :poll-ms 500}],
+        :why
+        "No GIMP is running: launch a headless GIMP that starts the MCP server."},
+ :absent-after-two
+ #:plan{:state :link/absent,
+        :verdict :give-up,
+        :steps [],
+        :why
+        "Headless launches exited without a server. Is the GIMP flatpak installed?"},
+ :absent-fresh
+ #:plan{:state :link/absent,
+        :verdict :heal,
+        :steps
+        [#:step{:kind :launch-headless}
+         #:step{:kind :await-answer, :timeout-ms 60000, :poll-ms 500}],
+        :why
+        "No GIMP is running: launch a headless GIMP that starts the MCP server."},
+ :gui-dead-after-kill
+ #:plan{:state :link/dead-in-gui,
+        :verdict :heal,
+        :steps
+        [#:step{:kind :relaunch-in-gui}
+         #:step{:kind :await-answer, :timeout-ms 60000, :poll-ms 500}],
+        :why
+        "GIMP is running but its MCP server is dead: relaunch the plug-in inside it over D-Bus."},
+ :gui-dead-fresh
+ #:plan{:state :link/dead-in-gui,
+        :verdict :heal,
+        :steps
+        [#:step{:kind :relaunch-in-gui}
+         #:step{:kind :await-answer, :timeout-ms 60000, :poll-ms 500}],
+        :why
+        "GIMP is running but its MCP server is dead: relaunch the plug-in inside it over D-Bus."},
+ :gui-dead-relaunched
+ #:plan{:state :link/dead-in-gui,
+        :verdict :give-up,
+        :steps [],
+        :why
+        "A relaunch inside the running GIMP did not bring the server up. Check that gimp-mcp-plugin is installed in GIMP's plug-ins directory."},
+ :healthy
+ #:plan{:state :link/answering,
+        :verdict :healthy,
+        :steps [],
+        :why "The MCP server answers check_server."},
+ :owned-after-await
+ #:plan{:state :link/dead-owned,
+        :verdict :heal,
+        :steps
+        [#:step{:kind :stop-owned}
+         #:step{:kind :launch-headless}
+         #:step{:kind :await-answer, :timeout-ms 60000, :poll-ms 500}],
+        :why
+        "The headless GIMP hive-gimp launched never answered: stop it and launch again."},
+ :owned-after-one-launch
+ #:plan{:state :link/dead-owned,
+        :verdict :heal,
+        :steps
+        [#:step{:kind :stop-owned}
+         #:step{:kind :launch-headless}
+         #:step{:kind :await-answer, :timeout-ms 60000, :poll-ms 500}],
+        :why
+        "The headless GIMP hive-gimp launched never answered: stop it and launch again."},
+ :owned-after-two
+ #:plan{:state :link/dead-owned,
+        :verdict :give-up,
+        :steps [],
+        :why
+        "Two headless launches never answered. Read the launch log in the heal report."},
+ :owned-booting
+ #:plan{:state :link/dead-owned,
+        :verdict :heal,
+        :steps
+        [#:step{:kind :await-answer, :timeout-ms 60000, :poll-ms 500}],
+        :why
+        "A headless GIMP hive-gimp launched is alive but not listening yet: it may still be loading plug-ins."},
+ :wedged-after-kill
+ #:plan{:state :link/wedged,
+        :verdict :give-up,
+        :steps [],
+        :why
+        "The port stays wedged after a restart and a kill; something other than the plug-in holds it."},
+ :wedged-after-restart
+ #:plan{:state :link/wedged,
+        :verdict :heal,
+        :steps [#:step{:kind :kill-listener}],
+        :why
+        "restart_server did not take: stop the process holding the port, then relaunch."},
+ :wedged-fresh
+ #:plan{:state :link/wedged,
+        :verdict :heal,
+        :steps
+        [#:step{:kind :restart-server}
+         #:step{:kind :await-answer, :timeout-ms 60000, :poll-ms 500}],
+        :why
+        "Listening but not answering: ask the plug-in to re-bind its socket."}}

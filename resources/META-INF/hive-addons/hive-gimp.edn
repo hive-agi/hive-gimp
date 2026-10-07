@@ -14,7 +14,7 @@
  ;; drift the first time the catalog grows; the lifecycle learns the surface
  ;; from the first mount instead, and mounts eagerly until it has.
  :addon/lifecycle    {:policy :lazy :idle-ms 900000}
- :addon/description  "GIMP 3 image editing over the plug-in socket: a catalog of GIMP commands behind five tools (gimp, gimp_exec, gimp_catalog, gimp_pixel, gimp_doctor)."
+ :addon/description  "GIMP 3 image editing over the plug-in socket: a catalog of GIMP commands behind six tools (gimp, gimp_exec, gimp_catalog, gimp_pixel, gimp_doctor, gimp_lifecycle)."
  :addon/license      "MIT"
  :addon/maturity     :beta
  :addon/trust-class  :foss}

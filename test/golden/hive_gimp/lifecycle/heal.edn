@@ -1,0 +1,95 @@
+{:absent
+ {:outcome :healed,
+  :state :link/answering,
+  :rounds
+  [[:link/absent :heal [[:launch-headless true] [:await-answer true]]]
+   [:link/answering :healthy []]],
+  :valid? true},
+ :absent-no-flatpak
+ {:outcome :failed,
+  :state :link/absent,
+  :rounds
+  [[:link/absent :heal [[:launch-headless false]]]
+   [:link/absent :heal [[:launch-headless false]]]
+   [:link/absent :give-up []]],
+  :valid? true},
+ :absent-slow-boot
+ {:outcome :healed,
+  :state :link/answering,
+  :rounds
+  [[:link/absent :heal [[:launch-headless true] [:await-answer true]]]
+   [:link/answering :healthy []]],
+  :valid? true},
+ :absent-too-slow
+ {:outcome :failed,
+  :state :link/dead-owned,
+  :rounds
+  [[:link/absent :heal [[:launch-headless true] [:await-answer false]]]
+   [:link/dead-owned
+    :heal
+    [[:stop-owned true] [:launch-headless true] [:await-answer false]]]
+   [:link/dead-owned :give-up []]],
+  :valid? true},
+ :gui-dead
+ {:outcome :healed,
+  :state :link/answering,
+  :rounds
+  [[:link/dead-in-gui
+    :heal
+    [[:relaunch-in-gui true] [:await-answer true]]]
+   [:link/answering :healthy []]],
+  :valid? true},
+ :gui-dead-deaf
+ {:outcome :failed,
+  :state :link/dead-in-gui,
+  :rounds
+  [[:link/dead-in-gui
+    :heal
+    [[:relaunch-in-gui true] [:await-answer false]]]
+   [:link/dead-in-gui :give-up []]],
+  :valid? true},
+ :gui-dead-no-bus
+ {:outcome :failed,
+  :state :link/dead-in-gui,
+  :rounds
+  [[:link/dead-in-gui :heal [[:relaunch-in-gui false]]]
+   [:link/dead-in-gui :give-up []]],
+  :valid? true},
+ :healthy
+ {:outcome :already-healthy,
+  :state :link/answering,
+  :rounds [[:link/answering :healthy []]],
+  :valid? true},
+ :owned-booting
+ {:outcome :healed,
+  :state :link/answering,
+  :rounds
+  [[:link/dead-owned :heal [[:await-answer true]]]
+   [:link/answering :healthy []]],
+  :valid? true},
+ :wedged-restart
+ {:outcome :healed,
+  :state :link/answering,
+  :rounds
+  [[:link/wedged :heal [[:restart-server true] [:await-answer true]]]
+   [:link/answering :healthy []]],
+  :valid? true},
+ :wedged-stubborn
+ {:outcome :healed,
+  :state :link/answering,
+  :rounds
+  [[:link/wedged :heal [[:restart-server true] [:await-answer false]]]
+   [:link/wedged :heal [[:kill-listener true]]]
+   [:link/dead-in-gui
+    :heal
+    [[:relaunch-in-gui true] [:await-answer true]]]
+   [:link/answering :healthy []]],
+  :valid? true},
+ :wedged-unkillable
+ {:outcome :failed,
+  :state :link/wedged,
+  :rounds
+  [[:link/wedged :heal [[:restart-server true] [:await-answer false]]]
+   [:link/wedged :heal [[:kill-listener false]]]
+   [:link/wedged :give-up []]],
+  :valid? true}}

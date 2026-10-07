@@ -46,7 +46,7 @@
           (let [published (set (map :name (addon/tools a)))
                 advertised (set (re-seq #"gimp(?:_[a-z]+)?"
                                         (second (re-find #"\(([^)]*)\)" (:addon/description spec)))))]
-            (is (= 5 (count published)))
+            (is (= 6 (count published)))
             (is (= published advertised)))
           (finally (addon/shutdown! a)))))))
 
