@@ -1,0 +1,10 @@
+{:empty
+ "import json as __hg_json\ndef __hg_default(o):\n    if hasattr(o, 'get_id'):\n        return {'id': o.get_id(), 'type': type(o).__name__, 'name': o.get_name() if hasattr(o, 'get_name') else None}\n    return repr(o)\n__hg_r = None\nprint((\"\\u001ehive-gimp.py \" + __hg_json.dumps(__hg_r, default=__hg_default)))",
+ :lead
+ "import json as __hg_json\ndef __hg_default(o):\n    if hasattr(o, 'get_id'):\n        return {'id': o.get_id(), 'type': type(o).__name__, 'name': o.get_name() if hasattr(o, 'get_name') else None}\n    return repr(o)\nimg = Gimp.get_images()[0]\n__hg_r = [img.get_width(), img.get_height(), layer]\nprint((\"\\u001ehive-gimp.py \" + __hg_json.dumps(__hg_r, default=__hg_default)))",
+ :nil-last
+ "import json as __hg_json\ndef __hg_default(o):\n    if hasattr(o, 'get_id'):\n        return {'id': o.get_id(), 'type': type(o).__name__, 'name': o.get_name() if hasattr(o, 'get_name') else None}\n    return repr(o)\nf()\n__hg_r = None\nprint((\"\\u001ehive-gimp.py \" + __hg_json.dumps(__hg_r, default=__hg_default)))",
+ :one-value
+ "import json as __hg_json\ndef __hg_default(o):\n    if hasattr(o, 'get_id'):\n        return {'id': o.get_id(), 'type': type(o).__name__, 'name': o.get_name() if hasattr(o, 'get_name') else None}\n    return repr(o)\n__hg_r = Gimp.get_images()\nprint((\"\\u001ehive-gimp.py \" + __hg_json.dumps(__hg_r, default=__hg_default)))",
+ :statement
+ "import json as __hg_json\ndef __hg_default(o):\n    if hasattr(o, 'get_id'):\n        return {'id': o.get_id(), 'type': type(o).__name__, 'name': o.get_name() if hasattr(o, 'get_name') else None}\n    return repr(o)\nimport json\n__hg_r = json.dumps({\"a\": 1})\nprint((\"\\u001ehive-gimp.py \" + __hg_json.dumps(__hg_r, default=__hg_default)))"}
