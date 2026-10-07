@@ -1,0 +1,46 @@
+{:invert
+ {:procedure "gimp-drawable-invert",
+  :doc "Invert the contents of the specified drawable.",
+  :args
+  [{:name "drawable",
+    :kind :drawable,
+    :doc "The drawable",
+    :required? true}
+   {:name "linear",
+    :kind :boolean,
+    :doc "Whether to invert in linear space",
+    :default false}]},
+ :new-layer
+ {:procedure "gimp-layer-new",
+  :doc "Create a new layer.",
+  :args
+  [{:name "image", :kind :image, :doc "The image", :required? true}
+   {:name "color", :kind :color, :doc "Fill colour", :required? true}],
+  :values [{:name "layer", :type "GimpLayer"}]},
+ :png
+ {:procedure "file-png-export",
+  :doc "Exports files in PNG file format",
+  :args
+  [{:name "run-mode", :kind :enum, :doc "The run mode", :fixed 1}
+   {:name "image",
+    :kind :image,
+    :doc "The image to export",
+    :required? true}
+   {:name "file",
+    :kind :file,
+    :doc "The file to export to",
+    :required? true}
+   {:name "compression",
+    :kind :int,
+    :doc "Deflate Compression factor (0..9)",
+    :default 9}
+   {:name "format",
+    :kind :string,
+    :doc "PNG export format",
+    :default "auto"}
+   {:name "comment",
+    :kind :string,
+    :doc "Comment",
+    :nilable? true,
+    :default nil}],
+  :omitted [{:name "options", :type "GimpExportOptions"}]}}

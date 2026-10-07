@@ -61,6 +61,10 @@
          ;; tests, so a release gate invoking it would pass on every input.
          :main-opts ["-m" "kaocha.runner"]}
 
+  ;; Generate a PDB spec EDN from a live GIMP describe (see dev/pdb_snapshot.clj).
+  :pdb-snapshot {:extra-paths ["dev"]
+                 :main-opts ["-m" "pdb-snapshot"]}
+
   ;; Interactive development: `clojure -M:test:nrepl`.
   ;;
   ;; A separate alias rather than a flag on :test, because :test carries
