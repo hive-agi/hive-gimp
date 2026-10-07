@@ -1,0 +1,6 @@
+{:blocks
+ "def f(x):\n    for i in range(x):\n        if i:\n            pass\n    return x\nf(3)",
+ :empty "",
+ :one "import json",
+ :raw-lines "x = 1\ny = 2\nx",
+ :sequence "import json\na = 1\nprint(a)"}

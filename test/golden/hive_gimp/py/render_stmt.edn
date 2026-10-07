@@ -1,0 +1,48 @@
+{:assign ["t = (1,)"],
+ :assign-attr ["o.x = None"],
+ :assign-tuple ["(i, l) = x"],
+ :def
+ ["def half(a, b):"
+  "    if (a > b):"
+  "        return (a / 2)"
+  "    else:"
+  "        c = (b * 2)"
+  "        return c"],
+ :def-rest ["def f(*r):" "    pass"],
+ :expr-stmt ["f()"],
+ :for ["for x in xs:" "    print(x)"],
+ :for-destructure
+ ["for (i, l) in enumerate(ls):" "    if (i > 0):" "        print(i)"],
+ :for-empty ["for x in xs:" "    pass"],
+ :from-import ["from gi.repository import Gio, Gegl"],
+ :if ["if a:" "    b"],
+ :if-empty ["if a:" "    pass"],
+ :if-orelse ["if a:" "    b" "else:" "    a"],
+ :if-orelse-empty ["if a:" "    b" "else:" "    pass"],
+ :if-orelse-nil ["if a:" "    b"],
+ :import ["import json"],
+ :import-as ["import numpy as np"],
+ :raw-stmt ["x = 1" "y = 2"],
+ :raw-stmt-one ["print(x)"],
+ :return ["return a"],
+ :return-absent ["return"],
+ :return-nil ["return"],
+ :try-bare-except ["try:" "    a" "except:" "    pass"],
+ :try-finally
+ ["try:"
+  "    f()"
+  "except Exception as e:"
+  "    print(e)"
+  "finally:"
+  "    g()"],
+ :try-no-finally
+ ["try:" "    pass" "except Exception as e:" "    pass"],
+ :try-two-handlers
+ ["try:"
+  "    a"
+  "except KeyError as k:"
+  "    pass"
+  "except Exception:"
+  "    b"],
+ :while ["while a:" "    b"],
+ :while-empty ["while a:" "    pass"]}
