@@ -1,0 +1,8 @@
+{:export-png
+ "from gi.repository import Gio\nGimp.file_save(Gimp.RunMode.NONINTERACTIVE, logo, Gio.File.new_for_path(\"/srv/art/logo.png\"), None)",
+ :file-load
+ "from gi.repository import Gio\nhg_image = Gimp.file_load(Gimp.RunMode.NONINTERACTIVE, Gio.File.new_for_path(\"/srv/art/logo.png\"))\nhg_image",
+ :file-load-as
+ "from gi.repository import Gio\nlogo = Gimp.file_load(Gimp.RunMode.NONINTERACTIVE, Gio.File.new_for_path(\"/srv/art/logo v3.xcf\"))\nlogo",
+ :save-xcf
+ "from gi.repository import Gio\nGimp.file_save(Gimp.RunMode.NONINTERACTIVE, Gimp.Image.get_by_id(1), Gio.File.new_for_path(\"/srv/art/logo v3.xcf\"), None)"}

@@ -1,0 +1,16 @@
+{:get-by-id "Gimp.Image.get_by_id(7)",
+ :get-by-name
+ "next(iter([i for i in Gimp.get_images() if (i.get_name() == \"logo.xcf\")]), None)",
+ :get-images "Gimp.get_images()",
+ :get-layer-by-name
+ "Gimp.Image.get_by_id(1).get_layer_by_name(\"FRANCANA\")",
+ :get-layers "Gimp.Image.get_by_id(1).get_layers()",
+ :get-selected-layers "Gimp.Image.get_by_id(1).get_selected_layers()",
+ :get-size-bound
+ "{\"width\": scratch.get_width(), \"height\": scratch.get_height()}",
+ :get-size-ref
+ "{\"width\": Gimp.Image.get_by_id(1).get_width(), \"height\": Gimp.Image.get_by_id(1).get_height()}",
+ :new-image
+ "hg_image = Gimp.Image.new(640, 480, Gimp.ImageBaseType.RGB)\nhg_image",
+ :new-image-as
+ "scratch = Gimp.Image.new(8, 8, Gimp.ImageBaseType.RGB)\nscratch"}
