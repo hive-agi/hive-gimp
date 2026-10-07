@@ -13,7 +13,9 @@
    A node with no method, or a value with no literal, is refused with
    `{:hive-gimp/reason :py/unsupported-form}`."
   (:require [clojure.data.json :as json]
-            [clojure.string :as str]))
+            [clojure.string :as str]
+            [hive-gimp.py.ast :as ast]
+            [malli.core :as m]))
 
 ;; Copyright (C) 2026 Pedro Gomes Branquinho (BuddhiLW) <pedrogbranquinho@gmail.com>
 ;;
@@ -199,3 +201,14 @@
   "A vector of statement nodes as one Python source block."
   [nodes]
   (str/join "\n" (stmts nodes)))
+
+;; =============================================================================
+;; Function schemas (malli): what each public renderer accepts and answers
+;; =============================================================================
+
+(m/=> literal [:=> [:cat ast/LiteralValue] :string])
+(m/=> expr    [:=> [:cat ast/Expr] :string])
+(m/=> stmt    [:=> [:cat ast/Stmt] [:vector :string]])
+(m/=> stmts   [:=> [:cat [:sequential ast/Stmt]] [:vector :string]])
+(m/=> module  [:=> [:cat ast/Module] :string])
+(m/=> params  [:=> [:cat ast/Params] :string])
