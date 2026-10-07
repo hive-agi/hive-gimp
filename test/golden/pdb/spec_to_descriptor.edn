@@ -1,0 +1,94 @@
+{:despeckle
+ {:command "pdb_plug_in_despeckle",
+  :tool "gimp_pdb_plug_in_despeckle",
+  :doc
+  "Remove speckle noise from the image (GIMP PDB procedure plug-in-despeckle.)",
+  :params
+  [{:name "image",
+    :wire "image",
+    :schema :long,
+    :required? true,
+    :doc "The input image"}
+   {:name "drawables",
+    :wire "drawables",
+    :schema :vector,
+    :required? true,
+    :doc "The input drawables"}
+   {:name "radius",
+    :wire "radius",
+    :schema :long,
+    :default 3,
+    :doc "Filter box radius (1..30)"}
+   {:name "type",
+    :wire "type",
+    :schema :string,
+    :default "adaptive",
+    :doc "Filter type"}
+   {:name "black",
+    :wire "black",
+    :schema :long,
+    :default 7,
+    :doc "Black level (-1..255)"}
+   {:name "white",
+    :wire "white",
+    :schema :long,
+    :default 248,
+    :doc "White level (0..256)"}]},
+ :export
+ {:command "pdb_file_png_export",
+  :tool "gimp_pdb_file_png_export",
+  :doc
+  "Exports files in PNG file format (GIMP PDB procedure file-png-export.)",
+  :params
+  [{:name "image",
+    :wire "image",
+    :schema :long,
+    :required? true,
+    :doc "The image to export"}
+   {:name "file",
+    :wire "file",
+    :schema :string,
+    :required? true,
+    :doc "The file to export to"}
+   {:name "interlaced",
+    :wire "interlaced",
+    :schema :boolean,
+    :default false,
+    :doc "Use Adam7 interlacing"}
+   {:name "compression",
+    :wire "compression",
+    :schema :long,
+    :default 9,
+    :doc "Deflate Compression factor (0..9) (0..9)"}
+   {:name "save-transparent",
+    :wire "save_transparent",
+    :schema :boolean,
+    :default false,
+    :doc "Preserve color of completely transparent pixels"}
+   {:name "optimize-palette",
+    :wire "optimize_palette",
+    :schema :boolean,
+    :default false,
+    :doc
+    "When checked, save as 1, 2, 4, or 8-bit depending on number of colors used. When unchecked, always save as 8-bit"}
+   {:name "format",
+    :wire "format",
+    :schema :string,
+    :default "auto",
+    :doc "PNG export format"}]},
+ :invert
+ {:command "pdb_gimp_drawable_invert",
+  :tool "gimp_pdb_gimp_drawable_invert",
+  :doc
+  "Invert the contents of the specified drawable. (GIMP PDB procedure gimp-drawable-invert.)",
+  :params
+  [{:name "drawable",
+    :wire "drawable",
+    :schema :long,
+    :required? true,
+    :doc "The drawable"}
+   {:name "linear",
+    :wire "linear",
+    :schema :boolean,
+    :default false,
+    :doc "Whether to invert in linear space"}]}}

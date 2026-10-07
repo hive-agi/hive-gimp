@@ -62,15 +62,17 @@
 ;; Thin by design. Each is the loaded contract handed to the corresponding pure
 ;; function, so the behaviour under test is the pure one.
 
+(declare current)
+
 (defn commands
-  "Command name to `Descriptor`."
+  "Command name to `Descriptor`, registered rows included."
   []
-  (:commands @catalog))
+  (:commands (current)))
 
 (defn descriptor
   "The `Descriptor` for a command name or a published tool name, or nil."
   [name-or-tool]
-  (let [{:keys [commands aliases]} @catalog]
+  (let [{:keys [commands aliases]} (current)]
     (contract/lookup commands aliases name-or-tool)))
 
 (defn command-names
@@ -95,3 +97,36 @@
    report a bad contract in the field, where no test runner is present."
   []
   (contract/invalid (load-descriptors)))
+
+(defonce ^{:doc "Descriptors registered at runtime, by command. A re-registration
+                 of the same command replaces its row."}
+  registered
+  (atom {}))
+
+(defn register!
+  "Add `descriptor` to the live contract, replacing any row with its command.
+   Throws when it does not conform. Returns the descriptor."
+  [descriptor]
+  (when-let [problem (first (contract/invalid [descriptor]))]
+    (throw (ex-info (str "Cannot register " (:command descriptor) ": " (:problem problem))
+                    {:hive-gimp/reason :gimp/invalid-descriptor :descriptor descriptor})))
+  (swap! registered assoc (:command descriptor) descriptor)
+  descriptor)
+
+(defn unregister!
+  "Remove the registered row for `command`. Shipped resources are untouched."
+  [command]
+  (swap! registered dissoc command)
+  nil)
+
+(defn- current
+  "The shipped contract with every registered row merged in."
+  []
+  (let [base @catalog
+        regs (vals @registered)]
+    (if (empty? regs)
+      base
+      (let [ds (into (:descriptors base) regs)]
+        {:descriptors ds
+         :commands    (contract/index ds)
+         :aliases     (contract/aliases ds)}))))

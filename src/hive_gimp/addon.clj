@@ -21,7 +21,8 @@
             [hive-gimp.tools :as tools]
             [hive-gimp.transport.python :as python]
             [hive-gimp.transport.socket :as socket]
-            [hive-gimp.compose]))
+            [hive-gimp.compose]
+            [hive-gimp.pdb.starter]))
 
 ;; Copyright (C) 2026 Pedro Gomes Branquinho (BuddhiLW) <pedrogbranquinho@gmail.com>
 ;;
