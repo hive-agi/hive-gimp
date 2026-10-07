@@ -144,3 +144,16 @@ from a live `describe`, so adding a plug-in is a row, not code.
 returning forms (built with `py/forms`), composed by the caller and run in one
 round trip through `py/eval!`/`py/exec!`. Values that come back are DDD value
 objects (`{:id :type :name}` refs, sizes, colours) with malli schemas.
+
+## Lifecycle (lane F)
+
+`hive-gimp.lifecycle.*` keeps the MCP server up without a human.
+`model` (pure, DOMAIN): `Observation` -> `classify` -> `LinkState`, and
+`plan [observation history]` -> `HealPlan` (multimethod `plan-for` per state;
+escalation is a function of the step kinds already run). `port`:
+`ILinkProbe`, `ILifecycle`, `IClock`. `heal` (PIPELINE): `status`, `heal!`,
+`run-step` multimethod per step kind. `host` (BOUNDARY): TCP + `check_server`
+probe, `restart_server`, `ss`+kill, GIMP's D-Bus `org.gimp.GIMP.UI.BatchRun`
+for a running GUI, and an owned headless `flatpak run --die-with-parent`.
+`tool`: the MCP `gimp_lifecycle` tool. Facade: `hive-gimp.core/status`,
+`hive-gimp.core/heal!`. Schemas register under `:hive-gimp.lifecycle/*`.

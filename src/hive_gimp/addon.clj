@@ -22,6 +22,7 @@
             [hive-gimp.transport.python :as python]
             [hive-gimp.transport.socket :as socket]
             [hive-gimp.compose]
+            [hive-gimp.lifecycle.host :as lifecycle-host]
             [hive-gimp.pdb.starter]))
 
 ;; Copyright (C) 2026 Pedro Gomes Branquinho (BuddhiLW) <pedrogbranquinho@gmail.com>
@@ -62,7 +63,11 @@
               (reset! state {:ready?      true
                              :endpoint    endpoint
                              :transport   transport
-                             :host-python host-python})
+                             :host-python host-python
+                             ;; The lifecycle needs no live GIMP to mount: it
+                             ;; is the tool that brings GIMP back.
+                             :lifecycle   {:system   (lifecycle-host/system settings)
+                                           :endpoint endpoint}})
               {:success? true :errors []}))))
       (catch Exception e
         {:success? false
@@ -74,9 +79,9 @@
     nil)
 
   (tools [_]
-    (let [{:keys [ready? transport host-python]} @state]
+    (let [{:keys [ready? transport host-python lifecycle]} @state]
       (if ready?
-        (tools/tools transport host-python)
+        (tools/tools transport host-python lifecycle)
         [])))
 
   (schema-extensions [_] {})
@@ -107,7 +112,7 @@
                      :gimp         (if live? :reachable :unreachable)
                      :reason       (when-not live? (:reason outcome))
                      :hint         (when-not live?
-                                     "GIMP commands will fail until the plugin is running. Run the gimp_doctor tool for a staged diagnosis.")}})))))
+                                     "GIMP commands will fail until the plugin is running. Run gimp_lifecycle with action=heal to bring it back without a human, or gimp_doctor for a staged diagnosis.")}})))))
 
 (defn addon-ctor
   "Host entry point. `config` may carry :host, :port, :timeout-ms,

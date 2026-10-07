@@ -1,0 +1,8 @@
+{:absent :link/absent,
+ :answering :link/answering,
+ :answering-owned :link/answering,
+ :dead-gui-and-own :link/dead-in-gui,
+ :dead-in-gui :link/dead-in-gui,
+ :dead-owned :link/dead-owned,
+ :wedged-headless :link/wedged,
+ :wedged-in-gui :link/wedged}
