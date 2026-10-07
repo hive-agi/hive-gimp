@@ -10,6 +10,10 @@ port through libpython-clj.
 (gimp/doctor g)
 (gimp/invoke g "new_canvas" {:width 800 :height 600})
 (gimp/exec g ["Gimp.displays_flush()"])
+
+;; or the same as Clojure forms, compiled to Python:
+(require '[hive-gimp.py :as py])
+(py/exec! g (Gimp/displays-flush))
 ```
 
 ---
@@ -105,6 +109,44 @@ That is also why this addon publishes **five** MCP tools rather than eighty:
 
 Eighty tool definitions with descriptions and schemas is a permanent context tax
 on every client that mounts the addon, whether or not it ever touches GIMP.
+
+## Clojure forms instead of Python strings: `hive-gimp.py`
+
+`gimp/exec` takes Python source as strings. `hive-gimp.py` takes Clojure forms,
+compiles them to one Python block and sends it through the same exec channel,
+in one round trip:
+
+```clojure
+(require '[hive-gimp.py :as py])
+
+(let [group "logo v2"]
+  (py/eval! g
+    (def img (first (Gimp/get-images)))
+    (def v2 (first (for [l (.get-layers img) :when (= (.get-name l) ~group)] l)))
+    [(.get-width img) (.get-height img) (.get-children v2)]))
+;; => [2168 2096 [{:id 308, :type "GroupLayer", :name "tocha aneis"} ...]]
+
+(py/exec! g
+  (.select-ellipse img Gimp.ChannelOps/REPLACE 8 8 48 48)
+  (Gimp/context-set-foreground (Gegl.Color/new "#1a20cf"))
+  (.edit-fill layer Gimp.FillType/FOREGROUND)
+  (Gimp/displays-flush))
+```
+
+- Names follow PyGObject: `Gimp/get-images` is `Gimp.get_images`, `-` is `_`.
+- Calls take libpython-clj's spellings: `(.m obj a)`, `(py. obj m a)`,
+  `(py.- obj attr)`, `(py.. obj -attr (m a))`, and `:k v` keyword arguments.
+- `~x` splices the value of a Clojure `x` as a Python literal; `~@xs` splices
+  each element.
+- `eval`/`eval!` answer the last form as Clojure data (GIMP prints it as JSON;
+  GIMP objects come back as `{:id :type :name}`). `exec`/`exec!` answer stdout.
+  A refusal carries the `:python` that was sent.
+- `py/->python` is the pure compiler, for reading what will be sent.
+
+Why not libpython-clj itself: the Python that owns GIMP's objects is GIMP's own
+PyGObject, inside a plug-in process GIMP launched. A CPython embedded in the JVM
+cannot import `Gimp` and hold a live image, so the forms travel as compiled
+source instead. The namespace docstring lists every supported form.
 
 ## Things found in the reference project
 
