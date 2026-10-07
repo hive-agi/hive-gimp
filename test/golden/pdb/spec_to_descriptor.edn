@@ -60,6 +60,26 @@
     :schema :long,
     :default 9,
     :doc "Deflate Compression factor (0..9) (0..9)"}
+   {:name "bkgd",
+    :wire "bkgd",
+    :schema :boolean,
+    :default true,
+    :doc "Write bKGD chunk (PNG metadata)"}
+   {:name "offs",
+    :wire "offs",
+    :schema :boolean,
+    :default false,
+    :doc "Write oFFs chunk (PNG metadata)"}
+   {:name "phys",
+    :wire "phys",
+    :schema :boolean,
+    :default true,
+    :doc "Write pHYs chunk (PNG metadata)"}
+   {:name "time",
+    :wire "time",
+    :schema :boolean,
+    :default true,
+    :doc "Write tIME chunk (PNG metadata)"}
    {:name "save-transparent",
     :wire "save_transparent",
     :schema :boolean,
@@ -75,7 +95,38 @@
     :wire "format",
     :schema :string,
     :default "auto",
-    :doc "PNG export format"}]},
+    :doc "PNG export format"}
+   {:name "include-exif",
+    :wire "include_exif",
+    :schema :boolean,
+    :default false,
+    :doc "Save Exif (Exchangeable image file format) metadata"}
+   {:name "include-iptc",
+    :wire "include_iptc",
+    :schema :boolean,
+    :default false,
+    :doc
+    "Save IPTC (International Press Telecommunications Council) metadata"}
+   {:name "include-xmp",
+    :wire "include_xmp",
+    :schema :boolean,
+    :default false,
+    :doc "Save XMP (Extensible Metadata Platform) metadata"}
+   {:name "include-color-profile",
+    :wire "include_color_profile",
+    :schema :boolean,
+    :default false,
+    :doc "Save the ICC color profile as metadata"}
+   {:name "include-thumbnail",
+    :wire "include_thumbnail",
+    :schema :boolean,
+    :default true,
+    :doc "Save a smaller representation of the image as metadata"}
+   {:name "include-comment",
+    :wire "include_comment",
+    :schema :boolean,
+    :default false,
+    :doc "Save a comment as metadata"}]},
  :invert
  {:command "pdb_gimp_drawable_invert",
   :tool "gimp_pdb_gimp_drawable_invert",
