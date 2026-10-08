@@ -10,27 +10,27 @@
   ;; contract lib rather than on a host namespace is what lets any host, hive-mcp
   ;; or not, mount this jar. Requiring hive-mcp here would be the axiom violation
   ;; that makes the published artifact unloadable from a maven fetch.
-  io.github.hive-agi/hive-addon   {:mvn/version "1.1.2"}
+  io.github.hive-agi/hive-addon   {:mvn/version "1.1.3"}
 
   ;; hive-spi: pure SPI contract leaf (protocols, schema registry, generators).
-  io.github.hive-agi/hive-spi     {:mvn/version "1.4.2"}
+  io.github.hive-agi/hive-spi     {:mvn/version "1.4.4"}
 
   ;; hive-dsl: Result monad, rescue/guard, closed ADTs.
-  io.github.hive-agi/hive-dsl     {:mvn/version "0.5.34"}
+  io.github.hive-agi/hive-dsl     {:mvn/version "0.5.36"}
 
   ;; hive-help: the fleet's shared vocabulary for an actionable refusal, with
   ;; edit-distance suggestions. Boundary only. The portable core (shape,
   ;; command, response, ports, doctor.verdict) answers error VALUES and never
   ;; requires this, because it has to load where hive-help does not.
-  io.github.hive-agi/hive-help    {:mvn/version "0.1.5"}
+  io.github.hive-agi/hive-help    {:mvn/version "0.1.6"}
 
   ;; hive-di: typed config DI (env sources, coalesce).
-  io.github.hive-agi/hive-di      {:mvn/version "0.4.18"}
+  io.github.hive-agi/hive-di      {:mvn/version "0.4.19"}
 
   ;; hive-schemas: malli value objects plus the schema-driven stub/spy doubles
   ;; the suite injects through the transport port. Top level, not test-only:
   ;; hive-gimp.schema registers its value objects at load time.
-  io.github.hive-agi/hive-schemas {:mvn/version "0.1.39"}}
+  io.github.hive-agi/hive-schemas {:mvn/version "0.1.40"}}
 
  :aliases
  {;; clojure -T:build <task> -- canonical hive build (jar / install / bump / deploy).
@@ -72,7 +72,7 @@
   ;; `-M:test -m nrepl.cmdline` for a REPL hands "-m nrepl.cmdline" to the test
   ;; runner as arguments and starts no REPL. Listing :nrepl last makes its
   ;; main-opts the ones that win.
-  :nrepl {:extra-deps {nrepl/nrepl       {:mvn/version "1.7.0"}
+  :nrepl {:extra-deps {nrepl/nrepl       {:mvn/version "1.8.0"}
                        cider/cider-nrepl {:mvn/version "0.62.2"}}
           :main-opts  ["-m" "nrepl.cmdline"
                        "--middleware" "[cider.nrepl/cider-middleware]"]}
