@@ -1,0 +1,26 @@
+{:all
+ "Gimp.Selection.all(Gimp.Image.get_by_id(1))\nhg_bounds = Gimp.Selection.bounds(Gimp.Image.get_by_id(1))\n{\"empty?\": (not hg_bounds[1]), \"x\": hg_bounds[2], \"y\": hg_bounds[3], \"width\": (hg_bounds[4] - hg_bounds[2]), \"height\": (hg_bounds[5] - hg_bounds[3])}",
+ :bounds
+ "hg_bounds = Gimp.Selection.bounds(Gimp.Image.get_by_id(1))\n{\"empty?\": (not hg_bounds[1]), \"x\": hg_bounds[2], \"y\": hg_bounds[3], \"width\": (hg_bounds[4] - hg_bounds[2]), \"height\": (hg_bounds[5] - hg_bounds[3])}",
+ :grow
+ "Gimp.Selection.grow(Gimp.Image.get_by_id(1), 5)\nhg_bounds = Gimp.Selection.bounds(Gimp.Image.get_by_id(1))\n{\"empty?\": (not hg_bounds[1]), \"x\": hg_bounds[2], \"y\": hg_bounds[3], \"width\": (hg_bounds[4] - hg_bounds[2]), \"height\": (hg_bounds[5] - hg_bounds[3])}",
+ :invert
+ "Gimp.Selection.invert(Gimp.Image.get_by_id(1))\nhg_bounds = Gimp.Selection.bounds(Gimp.Image.get_by_id(1))\n{\"empty?\": (not hg_bounds[1]), \"x\": hg_bounds[2], \"y\": hg_bounds[3], \"width\": (hg_bounds[4] - hg_bounds[2]), \"height\": (hg_bounds[5] - hg_bounds[3])}",
+ :none
+ "Gimp.Selection.none(Gimp.Image.get_by_id(1))\nhg_bounds = Gimp.Selection.bounds(Gimp.Image.get_by_id(1))\n{\"empty?\": (not hg_bounds[1]), \"x\": hg_bounds[2], \"y\": hg_bounds[3], \"width\": (hg_bounds[4] - hg_bounds[2]), \"height\": (hg_bounds[5] - hg_bounds[3])}",
+ :select-ellipse
+ "Gimp.Image.get_by_id(1).select_ellipse(Gimp.ChannelOps.ADD, 0.0, 0.0, 64.0, 64.0)\nhg_bounds = Gimp.Selection.bounds(Gimp.Image.get_by_id(1))\n{\"empty?\": (not hg_bounds[1]), \"x\": hg_bounds[2], \"y\": hg_bounds[3], \"width\": (hg_bounds[4] - hg_bounds[2]), \"height\": (hg_bounds[5] - hg_bounds[3])}",
+ :select-item
+ "Gimp.Image.get_by_id(1).select_item(Gimp.ChannelOps.REPLACE, Gimp.Item.get_by_id(14))\nhg_bounds = Gimp.Selection.bounds(Gimp.Image.get_by_id(1))\n{\"empty?\": (not hg_bounds[1]), \"x\": hg_bounds[2], \"y\": hg_bounds[3], \"width\": (hg_bounds[4] - hg_bounds[2]), \"height\": (hg_bounds[5] - hg_bounds[3])}",
+ :select-item-op
+ "Gimp.Image.get_by_id(1).select_item(Gimp.ChannelOps.ADD, body)\nhg_bounds = Gimp.Selection.bounds(Gimp.Image.get_by_id(1))\n{\"empty?\": (not hg_bounds[1]), \"x\": hg_bounds[2], \"y\": hg_bounds[3], \"width\": (hg_bounds[4] - hg_bounds[2]), \"height\": (hg_bounds[5] - hg_bounds[3])}",
+ :select-polygon
+ "Gimp.Image.get_by_id(1).select_polygon(Gimp.ChannelOps.REPLACE, [0.0, 0.0, 100.0, 0.0, 50.0, 80.0])\nhg_bounds = Gimp.Selection.bounds(Gimp.Image.get_by_id(1))\n{\"empty?\": (not hg_bounds[1]), \"x\": hg_bounds[2], \"y\": hg_bounds[3], \"width\": (hg_bounds[4] - hg_bounds[2]), \"height\": (hg_bounds[5] - hg_bounds[3])}",
+ :select-polygon-op
+ "Gimp.Image.get_by_id(1).select_polygon(Gimp.ChannelOps.INTERSECT, [1.5, 2.0, 3.0, 4.0])\nhg_bounds = Gimp.Selection.bounds(Gimp.Image.get_by_id(1))\n{\"empty?\": (not hg_bounds[1]), \"x\": hg_bounds[2], \"y\": hg_bounds[3], \"width\": (hg_bounds[4] - hg_bounds[2]), \"height\": (hg_bounds[5] - hg_bounds[3])}",
+ :select-rectangle
+ "Gimp.Image.get_by_id(1).select_rectangle(Gimp.ChannelOps.REPLACE, 10.0, 20.0, 300.0, 40.0)\nhg_bounds = Gimp.Selection.bounds(Gimp.Image.get_by_id(1))\n{\"empty?\": (not hg_bounds[1]), \"x\": hg_bounds[2], \"y\": hg_bounds[3], \"width\": (hg_bounds[4] - hg_bounds[2]), \"height\": (hg_bounds[5] - hg_bounds[3])}",
+ :select-rectangle-op
+ "scratch.select_rectangle(Gimp.ChannelOps.SUBTRACT, 0.5, 1.0, 2.0, 3.0)\nhg_bounds = Gimp.Selection.bounds(scratch)\n{\"empty?\": (not hg_bounds[1]), \"x\": hg_bounds[2], \"y\": hg_bounds[3], \"width\": (hg_bounds[4] - hg_bounds[2]), \"height\": (hg_bounds[5] - hg_bounds[3])}",
+ :shrink
+ "Gimp.Selection.shrink(Gimp.Image.get_by_id(1), 3)\nhg_bounds = Gimp.Selection.bounds(Gimp.Image.get_by_id(1))\n{\"empty?\": (not hg_bounds[1]), \"x\": hg_bounds[2], \"y\": hg_bounds[3], \"width\": (hg_bounds[4] - hg_bounds[2]), \"height\": (hg_bounds[5] - hg_bounds[3])}"}

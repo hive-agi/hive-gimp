@@ -1,0 +1,28 @@
+{:failed
+ {:outcome :error,
+  :command "pdb_x",
+  :reason :gimp/procedure-failed,
+  :message "x answered execution-error: boom"},
+ :garbage
+ {:outcome :error,
+  :command "pdb_x",
+  :reason :gimp/unreadable-answer,
+  :message "GIMP ran x but its answer is not a RunAnswer.",
+  :detail "{:found \"yes\"}"},
+ :missing
+ {:outcome :error,
+  :command "pdb_x",
+  :reason :gimp/invalid-parameter,
+  :message
+  "No live GIMP object for: image. The ids must name an open image, layer or drawable."},
+ :ok
+ {:outcome :ok,
+  :command "pdb_x",
+  :value
+  {:procedure "x",
+   :values {:layer {:id 9, :type "Layer", :name "l"}}}},
+ :unknown
+ {:outcome :error,
+  :command "pdb_x",
+  :reason :gimp/unknown-procedure,
+  :message "GIMP has no PDB procedure named x."}}

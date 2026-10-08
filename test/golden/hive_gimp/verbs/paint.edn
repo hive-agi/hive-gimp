@@ -1,0 +1,27 @@
+{:context-get-background
+ "hg_rgba = Gimp.context_get_background().get_rgba()\n{\"r\": hg_rgba[0], \"g\": hg_rgba[1], \"b\": hg_rgba[2], \"a\": hg_rgba[3]}",
+ :context-get-foreground
+ "hg_rgba = Gimp.context_get_foreground().get_rgba()\n{\"r\": hg_rgba[0], \"g\": hg_rgba[1], \"b\": hg_rgba[2], \"a\": hg_rgba[3]}",
+ :context-set-background
+ "from gi.repository import Gegl\nhg_colour = Gegl.Color.new(\"black\")\nhg_colour.set_rgba(0.0, 0.0, 0.0, 0.25)\nGimp.context_set_background(hg_colour)\nhg_rgba = Gimp.context_get_background().get_rgba()\n{\"r\": hg_rgba[0], \"g\": hg_rgba[1], \"b\": hg_rgba[2], \"a\": hg_rgba[3]}",
+ :context-set-foreground
+ "from gi.repository import Gegl\nhg_colour = Gegl.Color.new(\"#2a4b8d\")\nGimp.context_set_foreground(hg_colour)\nhg_rgba = Gimp.context_get_foreground().get_rgba()\n{\"r\": hg_rgba[0], \"g\": hg_rgba[1], \"b\": hg_rgba[2], \"a\": hg_rgba[3]}",
+ :context-set-foreground-rgb
+ "from gi.repository import Gegl\nhg_colour = Gegl.Color.new(\"black\")\nhg_colour.set_rgba(1.0, 0.5, 0.0, 1.0)\nGimp.context_set_foreground(hg_colour)\nhg_rgba = Gimp.context_get_foreground().get_rgba()\n{\"r\": hg_rgba[0], \"g\": hg_rgba[1], \"b\": hg_rgba[2], \"a\": hg_rgba[3]}",
+ :context-set-line-width
+ "Gimp.context_set_line_width(3.0)\nGimp.context_get_line_width()",
+ :edit-fill
+ "Gimp.Item.get_by_id(12).edit_fill(Gimp.FillType.FOREGROUND)\nGimp.Item.get_by_id(12)",
+ :edit-fill-colour
+ "try:\n    Gimp.context_push()\n    from gi.repository import Gegl\n    hg_colour = Gegl.Color.new(\"white\")\n    Gimp.context_set_foreground(hg_colour)\n    Gimp.Item.get_by_id(12).edit_fill(Gimp.FillType.FOREGROUND)\nfinally:\n    Gimp.context_pop()\nGimp.Item.get_by_id(12)",
+ :edit-fill-colour-rgba
+ "try:\n    Gimp.context_push()\n    from gi.repository import Gegl\n    hg_colour = Gegl.Color.new(\"black\")\n    hg_colour.set_rgba(0.1, 0.2, 0.3, 1.0)\n    Gimp.context_set_foreground(hg_colour)\n    bg.edit_fill(Gimp.FillType.FOREGROUND)\nfinally:\n    Gimp.context_pop()\nbg",
+ :edit-fill-white "bg.edit_fill(Gimp.FillType.WHITE)\nbg",
+ :edit-stroke-item
+ "try:\n    Gimp.context_push()\n    Gimp.context_set_line_width(4.0)\n    Gimp.Item.get_by_id(12).edit_stroke_item(Gimp.Item.get_by_id(40))\nfinally:\n    Gimp.context_pop()\nGimp.Item.get_by_id(12)",
+ :edit-stroke-item-colour
+ "try:\n    Gimp.context_push()\n    from gi.repository import Gegl\n    hg_colour = Gegl.Color.new(\"black\")\n    hg_colour.set_rgba(1.0, 1.0, 1.0, 1.0)\n    Gimp.context_set_foreground(hg_colour)\n    bg.edit_stroke_item(p)\nfinally:\n    Gimp.context_pop()\nbg",
+ :edit-stroke-selection
+ "try:\n    Gimp.context_push()\n    Gimp.Item.get_by_id(12).edit_stroke_selection()\nfinally:\n    Gimp.context_pop()\nGimp.Item.get_by_id(12)",
+ :edit-stroke-selection-full
+ "try:\n    Gimp.context_push()\n    from gi.repository import Gegl\n    hg_colour = Gegl.Color.new(\"red\")\n    Gimp.context_set_foreground(hg_colour)\n    Gimp.context_set_line_width(2.5)\n    Gimp.Item.get_by_id(12).edit_stroke_selection()\nfinally:\n    Gimp.context_pop()\nGimp.Item.get_by_id(12)"}

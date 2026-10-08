@@ -26,7 +26,9 @@
             [hive-gimp.ports :as ports]
             [hive-gimp.response :as response]
             [hive-gimp.transport.python :as python]
-            [hive-gimp.transport.socket :as socket]))
+            [hive-gimp.transport.socket :as socket]
+            [hive-gimp.lifecycle.heal :as heal]
+            [hive-gimp.lifecycle.host :as host]))
 
 ;; Copyright (C) 2026 Pedro Gomes Branquinho (BuddhiLW) <pedrogbranquinho@gmail.com>
 ;;
@@ -148,3 +150,34 @@
 (def ok?    response/ok?)
 (def value  response/value)
 (def ->result response/->result)
+
+;; =============================================================================
+;; Lifecycle
+;; =============================================================================
+
+(defn- lifecycle-of
+  "The heal system and endpoint for `session`. A session may carry its own
+   `:lifecycle` system (a test, a remote host); otherwise the real host."
+  [session opts]
+  [(or (:lifecycle session) (host/system opts))
+   (or (:endpoint session) (config/endpoint opts))])
+
+(defn status
+  "The MCP link right now: `{:observed Observation :state LinkState}`.
+   Touches nothing."
+  ([session] (status session {}))
+  ([session opts]
+   (let [[system endpoint] (lifecycle-of session opts)]
+     (heal/status system endpoint))))
+
+(defn heal!
+  "Bring GIMP's MCP server to answering with no human: restart a wedged
+   server, relaunch a dead one inside the running GUI GIMP over D-Bus, or
+   launch a headless GIMP when none runs. Returns a `HealReport`.
+
+   `opts` may carry `:gimp-argv` (how GIMP starts here) and a partial
+   `:policy` ({:await-ms :poll-ms :max-rounds})."
+  ([session] (heal! session {}))
+  ([session opts]
+   (let [[system endpoint] (lifecycle-of session opts)]
+     (heal/heal! system endpoint))))

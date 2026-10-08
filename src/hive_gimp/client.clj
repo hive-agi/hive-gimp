@@ -196,10 +196,6 @@
                            "from the text_width and text_height it returns."))
       outcome)))
 
-(defmethod send-compensated "place_image"
-  [transport gimp-command]
-  (native-only-aware transport gimp-command))
-
 (defmethod send-compensated "place_text"
   [transport gimp-command]
   (native-only-aware transport gimp-command))

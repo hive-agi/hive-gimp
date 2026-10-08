@@ -1,0 +1,180 @@
+{:bindings
+ [{:py/node :assign,
+   :target {:py/node :name, :id "x"},
+   :value {:py/node :literal, :value 1}}
+  {:py/node :assign,
+   :target
+   {:py/node :tuple,
+    :items [{:py/node :name, :id "a"} {:py/node :name, :id "b"}]},
+   :value {:py/node :name, :id "p"}}
+  {:py/node :assign,
+   :target
+   {:py/node :attr, :object {:py/node :name, :id "o"}, :attr "x"},
+   :value {:py/node :literal, :value 1}}
+  {:py/node :assign,
+   :target {:py/node :name, :id "c"},
+   :value {:py/node :literal, :value 2}}
+  {:py/node :expr-stmt,
+   :expr
+   {:py/node :call,
+    :fn {:py/node :name, :id "f"},
+    :args [{:py/node :name, :id "c"}],
+    :kwargs []}}],
+ :blocks
+ [{:py/node :expr-stmt,
+   :expr
+   {:py/node :call,
+    :fn {:py/node :name, :id "f"},
+    :args [],
+    :kwargs []}}
+  {:py/node :expr-stmt,
+   :expr
+   {:py/node :call,
+    :fn {:py/node :name, :id "g"},
+    :args [],
+    :kwargs []}}
+  {:py/node :if,
+   :test {:py/node :name, :id "a"},
+   :body [{:py/node :expr-stmt, :expr {:py/node :name, :id "b"}}],
+   :orelse nil}
+  {:py/node :if,
+   :test {:py/node :name, :id "a"},
+   :body [{:py/node :expr-stmt, :expr {:py/node :name, :id "b"}}],
+   :orelse [{:py/node :expr-stmt, :expr {:py/node :name, :id "c"}}]}
+  {:py/node :if,
+   :test {:py/node :name, :id "a"},
+   :body [],
+   :orelse nil}
+  {:py/node :if,
+   :test
+   {:py/node :unop, :op "not", :operand {:py/node :name, :id "a"}},
+   :body [{:py/node :expr-stmt, :expr {:py/node :name, :id "b"}}],
+   :orelse nil}
+  {:py/node :while,
+   :test {:py/node :name, :id "a"},
+   :body [{:py/node :expr-stmt, :expr {:py/node :name, :id "b"}}]}],
+ :defn
+ [{:py/node :def,
+   :name "half",
+   :params {:fixed ["a" "b"], :rest nil},
+   :body
+   [{:py/node :if,
+     :test
+     {:py/node :binop,
+      :op ">",
+      :operands [{:py/node :name, :id "a"} {:py/node :name, :id "b"}]},
+     :body
+     [{:py/node :return,
+       :value
+       {:py/node :binop,
+        :op "/",
+        :operands
+        [{:py/node :name, :id "a"} {:py/node :literal, :value 2}]}}],
+     :orelse
+     [{:py/node :assign,
+       :target {:py/node :name, :id "c"},
+       :value
+       {:py/node :binop,
+        :op "*",
+        :operands
+        [{:py/node :name, :id "b"} {:py/node :literal, :value 2}]}}
+      {:py/node :return, :value {:py/node :name, :id "c"}}]}]}
+  {:py/node :def,
+   :name "f",
+   :params {:fixed ["c"], :rest nil},
+   :body
+   [{:py/node :if,
+     :test {:py/node :name, :id "c"},
+     :body [{:py/node :return, :value {:py/node :name, :id "x"}}],
+     :orelse nil}]}
+  {:py/node :def,
+   :name "g",
+   :params {:fixed [], :rest nil},
+   :body
+   [{:py/node :assign,
+     :target {:py/node :name, :id "y"},
+     :value {:py/node :literal, :value 1}}]}
+  {:py/node :def,
+   :name "h",
+   :params {:fixed [], :rest nil},
+   :body
+   [{:py/node :try,
+     :body [{:py/node :return, :value {:py/node :name, :id "a"}}],
+     :handlers
+     [{:type {:py/node :name, :id "E"},
+       :name "e",
+       :body [{:py/node :return, :value {:py/node :name, :id "b"}}]}],
+     :finally nil}]}],
+ :loops
+ [{:py/node :for,
+   :target
+   {:py/node :tuple,
+    :items [{:py/node :name, :id "i"} {:py/node :name, :id "l"}]},
+   :iter
+   {:py/node :call,
+    :fn {:py/node :name, :id "enumerate"},
+    :args [{:py/node :name, :id "ls"}],
+    :kwargs []},
+   :body
+   [{:py/node :if,
+     :test
+     {:py/node :binop,
+      :op ">",
+      :operands
+      [{:py/node :name, :id "i"} {:py/node :literal, :value 0}]},
+     :body
+     [{:py/node :expr-stmt,
+       :expr
+       {:py/node :call,
+        :fn {:py/node :name, :id "print"},
+        :args [{:py/node :name, :id "i"}],
+        :kwargs []}}],
+     :orelse nil}]}
+  {:py/node :for,
+   :target {:py/node :name, :id "i"},
+   :iter
+   {:py/node :call,
+    :fn {:py/node :name, :id "range"},
+    :args [{:py/node :literal, :value 2}],
+    :kwargs []},
+   :body [{:py/node :expr-stmt, :expr {:py/node :name, :id "i"}}]}],
+ :misc
+ [{:py/node :return, :value nil}
+  {:py/node :return, :value {:py/node :name, :id "x"}}
+  {:py/node :import, :module "json", :as nil}
+  {:py/node :import, :module "numpy", :as "np"}
+  {:py/node :from-import,
+   :module "gi.repository",
+   :names ["Gio" "Gegl"]}
+  {:py/node :raw-stmt, :code "x = 1\ny = 2"}
+  {:py/node :try,
+   :body
+   [{:py/node :expr-stmt,
+     :expr
+     {:py/node :call,
+      :fn {:py/node :name, :id "f"},
+      :args [],
+      :kwargs []}}],
+   :handlers
+   [{:type {:py/node :name, :id "Exception"},
+     :name "e",
+     :body
+     [{:py/node :expr-stmt,
+       :expr
+       {:py/node :call,
+        :fn {:py/node :name, :id "print"},
+        :args [{:py/node :name, :id "e"}],
+        :kwargs []}}]}],
+   :finally
+   [{:py/node :expr-stmt,
+     :expr
+     {:py/node :call,
+      :fn {:py/node :name, :id "g"},
+      :args [],
+      :kwargs []}}]}
+  {:py/node :expr-stmt,
+   :expr
+   {:py/node :call,
+    :fn {:py/node :name, :id "f"},
+    :args [],
+    :kwargs []}}]}

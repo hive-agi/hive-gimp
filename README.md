@@ -10,6 +10,10 @@ port through libpython-clj.
 (gimp/doctor g)
 (gimp/invoke g "new_canvas" {:width 800 :height 600})
 (gimp/exec g ["Gimp.displays_flush()"])
+
+;; or the same as Clojure forms, compiled to Python:
+(require '[hive-gimp.py :as py])
+(py/exec! g (Gimp/displays-flush))
 ```
 
 ---
@@ -105,6 +109,44 @@ That is also why this addon publishes **five** MCP tools rather than eighty:
 
 Eighty tool definitions with descriptions and schemas is a permanent context tax
 on every client that mounts the addon, whether or not it ever touches GIMP.
+
+## Clojure forms instead of Python strings: `hive-gimp.py`
+
+`gimp/exec` takes Python source as strings. `hive-gimp.py` takes Clojure forms,
+compiles them to one Python block and sends it through the same exec channel,
+in one round trip:
+
+```clojure
+(require '[hive-gimp.py :as py])
+
+(let [group "logo v2"]
+  (py/eval! g
+    (def img (first (Gimp/get-images)))
+    (def v2 (first (for [l (.get-layers img) :when (= (.get-name l) ~group)] l)))
+    [(.get-width img) (.get-height img) (.get-children v2)]))
+;; => [2168 2096 [{:id 308, :type "GroupLayer", :name "tocha aneis"} ...]]
+
+(py/exec! g
+  (.select-ellipse img Gimp.ChannelOps/REPLACE 8 8 48 48)
+  (Gimp/context-set-foreground (Gegl.Color/new "#1a20cf"))
+  (.edit-fill layer Gimp.FillType/FOREGROUND)
+  (Gimp/displays-flush))
+```
+
+- Names follow PyGObject: `Gimp/get-images` is `Gimp.get_images`, `-` is `_`.
+- Calls take libpython-clj's spellings: `(.m obj a)`, `(py. obj m a)`,
+  `(py.- obj attr)`, `(py.. obj -attr (m a))`, and `:k v` keyword arguments.
+- `~x` splices the value of a Clojure `x` as a Python literal; `~@xs` splices
+  each element.
+- `eval`/`eval!` answer the last form as Clojure data (GIMP prints it as JSON;
+  GIMP objects come back as `{:id :type :name}`). `exec`/`exec!` answer stdout.
+  A refusal carries the `:python` that was sent.
+- `py/->python` is the pure compiler, for reading what will be sent.
+
+Why not libpython-clj itself: the Python that owns GIMP's objects is GIMP's own
+PyGObject, inside a plug-in process GIMP launched. A CPython embedded in the JVM
+cannot import `Gimp` and hold a live image, so the forms travel as compiled
+source instead. The namespace docstring lists every supported form.
 
 ## Things found in the reference project
 
@@ -248,6 +290,52 @@ mkdir -p "$DEST" && cp gimp-mcp-plugin.py "$DEST/" && chmod +x "$DEST"/*.py
 
 The directory and the file must share a name (`gimp-mcp-plugin/gimp-mcp-plugin.py`)
 and the file must be executable, or GIMP 3 skips it without a word.
+
+### Keeping the server up without a human
+
+A PDB calling error kills the plug-in process while GIMP's window stays up, and
+nothing restarts it. `heal!` does, with no click:
+
+```clojure
+(def g (gimp/connect))
+(gimp/status g)   ;=> {:observed {...} :state :link/dead-in-gui}
+(gimp/heal! g)    ;=> {:outcome :healed :state :link/answering :rounds [...]}
+```
+
+The MCP tool `gimp_lifecycle` (`action` = `status` | `heal`) does the same.
+What `heal!` does depends on what it observes, and it escalates when a remedy
+does not take:
+
+| state | remedy |
+|---|---|
+| answering | nothing |
+| wedged (listening, not answering) | `restart_server`; then stop the process holding the port |
+| dead in a GUI GIMP | relaunch `plug-in-mcp-server` inside it over D-Bus |
+| no GIMP at all | launch a headless GIMP that hive-gimp owns |
+
+The GUI relaunch uses GIMP 3's own session-bus service: GIMP owns
+`org.gimp.GIMP.UI` and exports `BatchRun(interpreter, command)`, the method
+`gimp -b` uses to hand a batch to an instance that is already open. There is
+nothing to install in GIMP and no restart. The equivalent by hand is:
+
+```bash
+gdbus call --session --dest org.gimp.GIMP.UI --object-path /org/gimp/GIMP/UI \
+  --method org.gimp.GIMP.UI.BatchRun python-fu-eval \
+  'from gi.repository import Gimp
+proc = Gimp.get_pdb().lookup_procedure("plug-in-mcp-server")
+cfg = proc.create_config()
+cfg.set_property("run-mode", Gimp.RunMode.NONINTERACTIVE)
+proc.run(cfg)'
+```
+
+The headless GIMP runs as `flatpak run --die-with-parent org.gimp.GIMP -n -i -d -f
+--batch-interpreter python-fu-eval -b <that source>` (pass `:gimp-argv` for a
+native install). It logs to `$TMPDIR/hive-gimp-headless.log` and dies with the
+JVM that launched it. `--die-with-parent` is required: without it, stopping
+`flatpak run` leaves the sandboxed GIMP orphaned and still serving the port.
+
+Live proof: `dev/heal_live.clj` kills the plug-in, heals, then `py/eval!`s an
+image's `[w h]`.
 
 ## Configuration
 

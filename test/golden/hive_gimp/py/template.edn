@@ -1,0 +1,8 @@
+{:call (f a 1 :k "s"),
+ :map {:k [:lit 2]},
+ :nested (do (def x [:lit [1 2]]) (.m o [:lit 0] [:lit 1])),
+ :set #{a},
+ :splice (f [:lit 1] [:lit 2] b),
+ :symbol a,
+ :unquote (f [:lit 3]),
+ :vector [a [:lit "xy"]]}

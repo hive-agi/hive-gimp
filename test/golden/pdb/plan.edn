@@ -1,0 +1,22 @@
+{:despeckle
+ "from gi.repository import Gio, Gegl\nhg_pdb_proc = Gimp.get_pdb().lookup_procedure(\"plug-in-despeckle\")\nhg_pdb_missing = []\nhg_pdb_result = None\nif (not (hg_pdb_proc is None)):\n    hg_pdb_config = hg_pdb_proc.create_config()\n    hg_pdb_config.set_property(\"run-mode\", 1)\n    hg_pdb_object = Gimp.Image.get_by_id(1)\n    if (hg_pdb_object is None):\n        hg_pdb_missing.append(\"image\")\n    else:\n        hg_pdb_config.set_property(\"image\", hg_pdb_object)\n    hg_pdb_objects = [Gimp.Drawable.get_by_id(i) for i in [2, 3]]\n    if ((0 == len(hg_pdb_objects)) or (None in hg_pdb_objects)):\n        hg_pdb_missing.append(\"drawables\")\n    else:\n        hg_pdb_config.set_core_object_array(\"drawables\", hg_pdb_objects)\n    hg_pdb_config.set_property(\"radius\", 4)\n    if (0 == len(hg_pdb_missing)):\n        hg_pdb_result = hg_pdb_proc.run(hg_pdb_config)\n{\"found\": (not (hg_pdb_proc is None)), \"missing\": hg_pdb_missing, \"status\": (None if (hg_pdb_result is None) else hg_pdb_result.index(0).value_nick), \"values\": ([] if (hg_pdb_result is None) else [hg_pdb_result.index(i) for i in range(1, hg_pdb_result.length())]), \"names\": ([] if (hg_pdb_proc is None) else [p.name for p in hg_pdb_proc.get_return_values()]), \"error\": (None if ((hg_pdb_result is None) or (\"success\" == hg_pdb_result.index(0).value_nick)) else Gimp.get_pdb().get_last_error())}",
+ :empty-list
+ {:outcome :error,
+  :command "pdb_plug_in_despeckle",
+  :reason :gimp/invalid-parameter,
+  :message
+  "drawables expects a non-empty list of positive integer drawable ids, got []"},
+ :export
+ "from gi.repository import Gio, Gegl\nhg_pdb_proc = Gimp.get_pdb().lookup_procedure(\"file-png-export\")\nhg_pdb_missing = []\nhg_pdb_result = None\nif (not (hg_pdb_proc is None)):\n    hg_pdb_config = hg_pdb_proc.create_config()\n    hg_pdb_config.set_property(\"run-mode\", 1)\n    hg_pdb_object = Gimp.Image.get_by_id(1)\n    if (hg_pdb_object is None):\n        hg_pdb_missing.append(\"image\")\n    else:\n        hg_pdb_config.set_property(\"image\", hg_pdb_object)\n    hg_pdb_config.set_property(\"file\", Gio.File.new_for_path(\"/tmp/x.png\"))\n    hg_pdb_config.set_property(\"compression\", 3)\n    if (0 == len(hg_pdb_missing)):\n        hg_pdb_result = hg_pdb_proc.run(hg_pdb_config)\n{\"found\": (not (hg_pdb_proc is None)), \"missing\": hg_pdb_missing, \"status\": (None if (hg_pdb_result is None) else hg_pdb_result.index(0).value_nick), \"values\": ([] if (hg_pdb_result is None) else [hg_pdb_result.index(i) for i in range(1, hg_pdb_result.length())]), \"names\": ([] if (hg_pdb_proc is None) else [p.name for p in hg_pdb_proc.get_return_values()]), \"error\": (None if ((hg_pdb_result is None) or (\"success\" == hg_pdb_result.index(0).value_nick)) else Gimp.get_pdb().get_last_error())}",
+ :invert
+ "from gi.repository import Gio, Gegl\nhg_pdb_proc = Gimp.get_pdb().lookup_procedure(\"gimp-drawable-invert\")\nhg_pdb_missing = []\nhg_pdb_result = None\nif (not (hg_pdb_proc is None)):\n    hg_pdb_config = hg_pdb_proc.create_config()\n    hg_pdb_object = Gimp.Drawable.get_by_id(7)\n    if (hg_pdb_object is None):\n        hg_pdb_missing.append(\"drawable\")\n    else:\n        hg_pdb_config.set_property(\"drawable\", hg_pdb_object)\n    hg_pdb_config.set_property(\"linear\", True)\n    if (0 == len(hg_pdb_missing)):\n        hg_pdb_result = hg_pdb_proc.run(hg_pdb_config)\n{\"found\": (not (hg_pdb_proc is None)), \"missing\": hg_pdb_missing, \"status\": (None if (hg_pdb_result is None) else hg_pdb_result.index(0).value_nick), \"values\": ([] if (hg_pdb_result is None) else [hg_pdb_result.index(i) for i in range(1, hg_pdb_result.length())]), \"names\": ([] if (hg_pdb_proc is None) else [p.name for p in hg_pdb_proc.get_return_values()]), \"error\": (None if ((hg_pdb_result is None) or (\"success\" == hg_pdb_result.index(0).value_nick)) else Gimp.get_pdb().get_last_error())}",
+ :relative-file
+ {:outcome :error,
+  :command "pdb_file_png_export",
+  :reason :gimp/invalid-parameter,
+  :message "file expects an absolute file path, got \"x.png\""},
+ :zero-id
+ {:outcome :error,
+  :command "pdb_gimp_drawable_invert",
+  :reason :gimp/invalid-parameter,
+  :message "drawable expects a positive integer GIMP object id, got 0"}}

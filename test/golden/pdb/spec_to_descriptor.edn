@@ -1,0 +1,145 @@
+{:despeckle
+ {:command "pdb_plug_in_despeckle",
+  :tool "gimp_pdb_plug_in_despeckle",
+  :doc
+  "Remove speckle noise from the image (GIMP PDB procedure plug-in-despeckle.)",
+  :params
+  [{:name "image",
+    :wire "image",
+    :schema :long,
+    :required? true,
+    :doc "The input image"}
+   {:name "drawables",
+    :wire "drawables",
+    :schema :vector,
+    :required? true,
+    :doc "The input drawables"}
+   {:name "radius",
+    :wire "radius",
+    :schema :long,
+    :default 3,
+    :doc "Filter box radius (1..30)"}
+   {:name "type",
+    :wire "type",
+    :schema :string,
+    :default "adaptive",
+    :doc "Filter type"}
+   {:name "black",
+    :wire "black",
+    :schema :long,
+    :default 7,
+    :doc "Black level (-1..255)"}
+   {:name "white",
+    :wire "white",
+    :schema :long,
+    :default 248,
+    :doc "White level (0..256)"}]},
+ :export
+ {:command "pdb_file_png_export",
+  :tool "gimp_pdb_file_png_export",
+  :doc
+  "Exports files in PNG file format (GIMP PDB procedure file-png-export.)",
+  :params
+  [{:name "image",
+    :wire "image",
+    :schema :long,
+    :required? true,
+    :doc "The image to export"}
+   {:name "file",
+    :wire "file",
+    :schema :string,
+    :required? true,
+    :doc "The file to export to"}
+   {:name "interlaced",
+    :wire "interlaced",
+    :schema :boolean,
+    :default false,
+    :doc "Use Adam7 interlacing"}
+   {:name "compression",
+    :wire "compression",
+    :schema :long,
+    :default 9,
+    :doc "Deflate Compression factor (0..9) (0..9)"}
+   {:name "bkgd",
+    :wire "bkgd",
+    :schema :boolean,
+    :default true,
+    :doc "Write bKGD chunk (PNG metadata)"}
+   {:name "offs",
+    :wire "offs",
+    :schema :boolean,
+    :default false,
+    :doc "Write oFFs chunk (PNG metadata)"}
+   {:name "phys",
+    :wire "phys",
+    :schema :boolean,
+    :default true,
+    :doc "Write pHYs chunk (PNG metadata)"}
+   {:name "time",
+    :wire "time",
+    :schema :boolean,
+    :default true,
+    :doc "Write tIME chunk (PNG metadata)"}
+   {:name "save-transparent",
+    :wire "save_transparent",
+    :schema :boolean,
+    :default false,
+    :doc "Preserve color of completely transparent pixels"}
+   {:name "optimize-palette",
+    :wire "optimize_palette",
+    :schema :boolean,
+    :default false,
+    :doc
+    "When checked, save as 1, 2, 4, or 8-bit depending on number of colors used. When unchecked, always save as 8-bit"}
+   {:name "format",
+    :wire "format",
+    :schema :string,
+    :default "auto",
+    :doc "PNG export format"}
+   {:name "include-exif",
+    :wire "include_exif",
+    :schema :boolean,
+    :default false,
+    :doc "Save Exif (Exchangeable image file format) metadata"}
+   {:name "include-iptc",
+    :wire "include_iptc",
+    :schema :boolean,
+    :default false,
+    :doc
+    "Save IPTC (International Press Telecommunications Council) metadata"}
+   {:name "include-xmp",
+    :wire "include_xmp",
+    :schema :boolean,
+    :default false,
+    :doc "Save XMP (Extensible Metadata Platform) metadata"}
+   {:name "include-color-profile",
+    :wire "include_color_profile",
+    :schema :boolean,
+    :default false,
+    :doc "Save the ICC color profile as metadata"}
+   {:name "include-thumbnail",
+    :wire "include_thumbnail",
+    :schema :boolean,
+    :default true,
+    :doc "Save a smaller representation of the image as metadata"}
+   {:name "include-comment",
+    :wire "include_comment",
+    :schema :boolean,
+    :default false,
+    :doc "Save a comment as metadata"}]},
+ :invert
+ {:command "pdb_gimp_drawable_invert",
+  :tool "gimp_pdb_gimp_drawable_invert",
+  :doc
+  "Invert the contents of the specified drawable. (GIMP PDB procedure gimp-drawable-invert.)",
+  :params
+  [{:name "drawable",
+    :wire "drawable",
+    :schema :long,
+    :required? true,
+    :doc "The drawable"}
+   {:name "linear",
+    :wire "linear",
+    :schema :boolean,
+    :default false,
+    :doc "Whether to invert in linear space"}]}}

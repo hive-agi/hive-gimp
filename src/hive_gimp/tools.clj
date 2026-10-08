@@ -23,7 +23,8 @@
             [hive-gimp.doctor :as doctor]
             [hive-gimp.exec :as exec]
             [hive-gimp.response :as response]
-            [hive-gimp.pixel :as pixel]))
+            [hive-gimp.pixel :as pixel]
+            [hive-gimp.lifecycle.tool :as lifecycle-tool]))
 
 ;; Copyright (C) 2026 Pedro Gomes Branquinho (BuddhiLW) <pedrogbranquinho@gmail.com>
 ;;
@@ -298,13 +299,16 @@
 (defn tools
   "Every tool this addon publishes.
 
-   Five, carrying eighty GIMP commands plus the host-side pixel operations.
-   The count is the point: one tool definition per GIMP command would be a
-   large permanent tax on the context of every client that mounts this addon,
-   whether or not it ever opens an image."
-  [transport host-python]
-  [(gimp-tool transport)
-   (exec-tool transport)
-   (catalog-tool)
-   (pixel-tool transport host-python)
-   (doctor-tool transport host-python)])
+   Five, carrying eighty GIMP commands plus the host-side pixel operations,
+   and a sixth, `gimp_lifecycle`, when the host hands a lifecycle system
+   ({:system :endpoint}). The count is the point: one tool definition per GIMP
+   command would be a large permanent tax on the context of every client that
+   mounts this addon, whether or not it ever opens an image."
+  ([transport host-python] (tools transport host-python nil))
+  ([transport host-python lifecycle]
+   (cond-> [(gimp-tool transport)
+            (exec-tool transport)
+            (catalog-tool)
+            (pixel-tool transport host-python)
+            (doctor-tool transport host-python)]
+     lifecycle (conj (lifecycle-tool/lifecycle-tool lifecycle)))))

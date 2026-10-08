@@ -1,0 +1,7 @@
+{:empty {:data nil, :stdout ""},
+ :last-wins {:data 2, :stdout ""},
+ :nil-stdout {:data nil, :stdout ""},
+ :no-value {:data nil, :stdout "just printing"},
+ :printed
+ {:data {:id 3, :type "Layer", :name "P"}, :stdout "hello\nbye"},
+ :value-only {:data [2168 2096], :stdout ""}}
